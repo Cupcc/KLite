@@ -30,7 +30,6 @@
 #define HSE_FREQ_MHZ 16
 #define CPU_FREQ_MHZ 72
 
-//系统初始化
 void cpu_sys_init(void)
 {
 	RCC_LSICmd(ENABLE);
@@ -57,16 +56,12 @@ void cpu_sys_init(void)
 	NVIC_SetPriority(SysTick_IRQn, 255);
 }
 
-//系统空闲
 void cpu_sys_idle(uint32_t time)
 {
-    //__disable_irq();
     __wfi();
-    //__enable_irq();
 }
 
-//系统滴答
 void SysTick_Handler(void)
 {
-    kernel_time_tick(1);
+    kernel_tick(1);
 }

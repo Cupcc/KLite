@@ -30,7 +30,6 @@
 #define HSE_FREQ_MHZ 16
 #define CPU_FREQ_MHZ 180
 
-//系统初始化
 void cpu_sys_init(void)
 {
 	RCC_HSICmd(ENABLE);
@@ -54,7 +53,6 @@ void cpu_sys_init(void)
 	RCC_PCLK1Config(RCC_HCLK_Div4);
 	RCC_PCLK2Config(RCC_HCLK_Div2);
 	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 	RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
 	RCC_HSICmd(DISABLE);
     
@@ -64,16 +62,12 @@ void cpu_sys_init(void)
 	NVIC_SetPriority(SysTick_IRQn, 255);
 }
 
-//系统空闲
 void cpu_sys_idle(uint32_t time)
 {
-    __disable_irq();
     __wfi();
-    __enable_irq();
 }
 
-//系统滴答
 void SysTick_Handler(void)
 {
-    kernel_time_tick(1);
+    kernel_tick(1);
 }

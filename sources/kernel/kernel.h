@@ -43,7 +43,7 @@ void     kernel_start(void);
 void     kernel_idle(void);
 uint32_t kernel_idle_time(void);
 uint32_t kernel_time(void);
-void     kernel_time_tick(uint32_t time);
+void     kernel_tick(uint32_t time);
 uint32_t kernel_version(void);
 
 /******************************************************************************

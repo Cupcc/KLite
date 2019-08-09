@@ -28,7 +28,7 @@
 #include "sched.h"
 
 #define MAKE_VERSION_CODE(a,b,c)    ((a<<24)|(b<<16)|(c))
-#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,0,0)
+#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,0,1)
 
 static uint32_t m_tick_count;
 static thread_t m_idle_thread;
@@ -74,7 +74,7 @@ uint32_t kernel_time(void)
     return m_tick_count;
 }
 
-void kernel_time_tick(uint32_t time)
+void kernel_tick(uint32_t time)
 {
     m_tick_count += time;
     sched_time_tick(time);

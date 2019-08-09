@@ -26,20 +26,17 @@
 ******************************************************************************/
 #include "kernel.h"
 
-//系统初始化
 void cpu_sys_init(void)
 {
 
 }
 
-//系统空闲
 void cpu_sys_idle(uint32_t time)
 {
 
 }
 
-//系统滴答
 // void SysTick_Handler(void)
 // {
-//     kernel_time_tick(1);
+//     kernel_tick(1);
 // }
