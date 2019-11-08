@@ -34,6 +34,7 @@
 typedef void *thread_t;
 typedef void *mutex_t;
 typedef void *event_t;
+typedef void *sem_t;
 
 /******************************************************************************
 * kernel
@@ -89,19 +90,30 @@ bool     mutex_try_lock(mutex_t mutex);
 ******************************************************************************/
 event_t  event_create(void);
 void     event_delete(event_t event);
+void     event_reset(event_t event);
 bool     event_signal(event_t event);
 bool     event_broadcast(event_t event);
-void     event_post(event_t event);
 void     event_fire(event_t event);
-void     event_reset(event_t event);
+void     event_post(event_t event);
 void     event_wait(event_t event);
 bool     event_timed_wait(event_t event, uint32_t timeout);
 
 /******************************************************************************
+* semaphore
+******************************************************************************/
+sem_t    sem_create(void);
+void     sem_delete(sem_t sem);
+void     sem_reset(sem_t sem);
+void     sem_post(sem_t sem);
+void     sem_wait(sem_t sem);
+bool     sem_timed_wait(sem_t sem, uint32_t timeout);
+int      sem_get_value(sem_t sem);
+
+/******************************************************************************
 * alias
 ******************************************************************************/
-#define malloc       heap_alloc
-#define free         heap_free
-#define sleep        thread_sleep
+#define  malloc  heap_alloc
+#define  free    heap_free
+#define  sleep   thread_sleep
 
 #endif

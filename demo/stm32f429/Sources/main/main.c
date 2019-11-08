@@ -12,6 +12,8 @@
 
 static event_t  m_event;
 static event_t  m_event2;
+static mutex_t  m_mutex;
+static sem_t    m_sem;
 
 //演示线程
 //测试线程自动退出
@@ -71,6 +73,81 @@ static void demo3_thread(void *arg)
     }
 }
 
+//演示线程
+//互斥锁递归调用
+static void demo4_thread(void *arg)
+{
+	int i;
+	LOG("demo4_thread: 0x%08X\r\n", thread_self());
+	while(1)
+	{
+		for(i=0; i<5; i++)
+		{
+			mutex_lock(m_mutex);
+			LOG("demo4_thread: lock %d time.\r\n", i + 1);
+			sleep(1000);
+		}
+		
+		for(i=0; i<5; i++)
+		{
+			LOG("demo4_thread: unlock %d time.\r\n", i + 1);
+			mutex_unlock(m_mutex);
+			sleep(1000);
+		}
+	}
+}
+
+//演示线程
+//互斥锁递归调用
+static void demo5_thread(void *arg)
+{
+	LOG("demo5_thread: 0x%08X\r\n", thread_self());
+	while(1)
+	{
+		sleep(1000);
+		LOG("demo5_thread: wait for mutex...\r\n");
+		mutex_lock(m_mutex);
+		LOG("demo5_thread: locked mutex\r\n");
+		sleep(3000);
+		mutex_unlock(m_mutex);
+		LOG("demo5_thread: unlocked mutex\r\n");
+	}
+}
+
+//演示线程
+//计数信号量调用
+static void demo6_thread(void *arg)
+{
+	int i;
+	LOG("demo6_thread: 0x%08X\r\n", thread_self());
+	while(1)
+	{
+		for(i=0; i<10; i++)
+		{
+			LOG("demo6_thread: post sem %d\r\n", i + 1);
+			sem_post(m_sem);
+		}
+		sleep(10000);
+	}
+}
+
+//演示线程
+//计数信号量调用
+static void demo7_thread(void *arg)
+{
+	int i;
+	LOG("demo7_thread: 0x%08X\r\n", thread_self());
+	while(1)
+	{
+		sleep(1000);
+		for(i=0; i<10; i++)
+		{
+			sem_wait(m_sem);
+			LOG("demo7_thread: wait sem %d\r\n", i + 1);
+		}
+	}
+}
+
 //计算资源占用率
 //利用“空闲时间/总时间”计算CPU使用率
 static void usage_thread(void *arg)
@@ -119,8 +196,14 @@ void app_init(void)
 	log_init();
     m_event = event_create();
     m_event2= event_create();
+	m_mutex = mutex_create();
+	m_sem   = sem_create();
     thread_create(demo2_thread, 0, 0);
     thread_create(demo3_thread, 0, 0);
+	thread_create(demo4_thread, 0, 0);
+	thread_create(demo5_thread, 0, 0);
+	thread_create(demo6_thread, 0, 0);
+	thread_create(demo7_thread, 0, 0);
 	thread_create(usage_thread, 0, 0);
 }
 

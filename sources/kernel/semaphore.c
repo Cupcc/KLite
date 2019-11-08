@@ -27,99 +27,100 @@
 #include "kernel.h"
 #include "sched.h"
 
-struct mutex
+struct semaphore
 {
     struct tcb_node *head;
     struct tcb_node *tail;
-	struct tcb *owner;
-    int lock;
+    int data;
 };
 
-mutex_t mutex_create(void)
+sem_t sem_create(void)
 {
-    struct mutex *p_mutex;
-    p_mutex = heap_alloc(sizeof(struct mutex));
-    if(p_mutex != NULL)
+    struct semaphore *p_sem;
+    p_sem = heap_alloc(sizeof(struct semaphore));
+    if(p_sem != NULL)
     {
-        p_mutex->head = NULL;
-        p_mutex->tail = NULL;
-        p_mutex->lock = 0;
-		p_mutex->owner= NULL;
+        p_sem->head = NULL;
+        p_sem->tail = NULL;
+        p_sem->data = 0;
     }
-    return (mutex_t)p_mutex;
+    return (sem_t)p_sem;
 }
 
-void mutex_delete(mutex_t mutex)
+void sem_delete(sem_t sem)
 {
-    heap_free(mutex);
+    heap_free(sem);
 }
 
-void mutex_lock(mutex_t mutex)
+void sem_reset(sem_t sem)
 {
-    struct mutex *p_mutex;
-    p_mutex = (struct mutex *)mutex;
+    struct semaphore *p_sem;
+    p_sem = (struct semaphore *)sem;
     sched_lock();
-    if(p_mutex->lock == 0)
+    p_sem->data = 0;
+    sched_unlock();
+}
+
+void sem_post(sem_t sem)
+{
+    struct semaphore *p_sem;
+    p_sem = (struct semaphore *)sem;
+    sched_lock();
+	if(sched_tcb_wake_one((struct tcb_list *)p_sem))
     {
-        p_mutex->lock++;
-		p_mutex->owner = sched_tcb_now;
+        sched_unlock();
+		sched_preempt();
+		return;
+    }
+	p_sem->data++;
+	sched_unlock();
+}
+
+void sem_wait(sem_t sem)
+{
+    struct semaphore *p_sem;
+    p_sem = (struct semaphore *)sem;
+    sched_lock();
+    if(p_sem->data > 0)
+    {
+		p_sem->data--;
         sched_unlock();
         return;
     }
-	if(p_mutex->owner == sched_tcb_now)
-	{
-		p_mutex->lock++;
-        sched_unlock();
-        return;
-	}
-    sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_mutex);
+    sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_sem);
     sched_unlock();
     sched_switch();
 }
 
-void mutex_unlock(mutex_t mutex)
+bool sem_timed_wait(sem_t sem, uint32_t timeout)
 {
-	struct tcb *p_tcb;
-    struct mutex *p_mutex;
-    p_mutex = (struct mutex *)mutex;
+    struct semaphore *p_sem;
+    p_sem = (struct semaphore *)sem;
     sched_lock();
-	p_mutex->lock--;
-	if(p_mutex->lock > 0)
-	{
-        sched_unlock();
-		return;
-	}
-	p_tcb = sched_tcb_wake_one((struct tcb_list *)p_mutex);
-    if(p_tcb != NULL)
+	if(p_sem->data > 0)
     {
-		p_mutex->owner = p_tcb;
-		p_mutex->lock++;
-        sched_unlock();
-        sched_preempt();
-		return;
-    }
-	sched_unlock();
-}
-
-bool mutex_try_lock(mutex_t mutex)
-{
-	struct mutex *p_mutex;
-    p_mutex = (struct mutex *)mutex;
-    sched_lock();
-    if(p_mutex->lock == 0)
-    {
-        p_mutex->lock++;
-		p_mutex->owner = sched_tcb_now;
+		p_sem->data--;
         sched_unlock();
         return true;
     }
-	if(p_mutex->owner == sched_tcb_now)
-	{
-		p_mutex->lock++;
+    if(timeout == 0)
+    {
         sched_unlock();
-        return true;
-	}
+        return false;
+    }
+    sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)p_sem, timeout);
     sched_unlock();
-	return false;
+    sched_switch();
+    return (sched_tcb_now->timeout != 0);
 }
 
+int sem_get_value(sem_t sem)
+{
+	int ret;
+	struct semaphore *p_sem;
+    p_sem = (struct semaphore *)sem;
+    sched_lock();
+    ret = p_sem->data;
+    sched_unlock();
+	return ret;
+}

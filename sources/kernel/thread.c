@@ -26,6 +26,9 @@
 ******************************************************************************/
 #include "kernel.h"
 #include "sched.h"
+#include "list.h"
+
+static struct tcb_list m_list_exit;
 
 thread_t thread_self(void)
 {
@@ -95,27 +98,6 @@ uint32_t thread_time(thread_t thread)
     return tcb->time;
 }
 
-void thread_exit(void)
-{
-    sched_lock();
-    sched_tcb_exit(sched_tcb_now);
-    sched_unlock();
-    sched_switch();
-}
-
-void thread_clean(void)
-{
-    struct tcb *tcb;
-    while(1)
-    {
-        sched_lock();
-        tcb = sched_tcb_clean();
-        sched_unlock();
-        if(tcb == NULL) break;
-        heap_free(tcb);
-    }
-}
-
 void thread_set_priority(thread_t thread, int prio)
 {
     struct tcb *tcb;
@@ -131,4 +113,26 @@ int thread_get_priority(thread_t thread)
     struct tcb *tcb;
     tcb = (struct tcb *)thread;
     return tcb->prio;
+}
+
+void thread_exit(void)
+{
+    sched_lock();
+    sched_tcb_suspend(sched_tcb_now);
+	list_append(&m_list_exit, &sched_tcb_now->node_sched);
+    sched_unlock();
+    sched_switch();
+}
+
+void thread_free(void)
+{
+	struct tcb_node *node;
+    while(m_list_exit.head)
+    {
+		node = m_list_exit.head;
+        sched_lock();
+		list_remove(&m_list_exit, node);
+        sched_unlock();
+        heap_free(node->tcb);
+    }
 }

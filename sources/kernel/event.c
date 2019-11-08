@@ -113,8 +113,9 @@ bool event_broadcast(event_t event)
     struct event *p_event;
     p_event = (struct event *)event;
     sched_lock();
-    if(sched_tcb_wake_all((struct tcb_list *)p_event))
+	if(sched_tcb_wake_one((struct tcb_list *)p_event))
     {
+		while(sched_tcb_wake_one((struct tcb_list *)p_event));
         sched_unlock();
 		sched_preempt();
         return true;
@@ -144,7 +145,7 @@ void event_fire(event_t event)
     p_event = (struct event *)event;
     sched_lock();
     p_event->fire |= EVENT_FIRE_KEEP;
-    sched_tcb_wake_all((struct tcb_list *)p_event);
+    while(sched_tcb_wake_one((struct tcb_list *)p_event));
     sched_unlock();
 	sched_preempt();
 }

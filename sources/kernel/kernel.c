@@ -28,13 +28,13 @@
 #include "sched.h"
 
 #define MAKE_VERSION_CODE(a,b,c)    ((a<<24)|(b<<16)|(c))
-#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,0,1)
+#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,1,0)
 
 static uint32_t m_tick_count;
 static thread_t m_idle_thread;
 
 extern void heap_init(uint32_t addr, uint32_t size);
-extern void thread_clean(void);
+extern void thread_free(void);
 
 void kernel_init(uint32_t heap_addr, uint32_t heap_size)
 {
@@ -55,18 +55,14 @@ void kernel_idle(void)
     thread_set_priority(m_idle_thread, THREAD_PRIORITY_IDLE - 1);
     while(1)
     {
-        thread_clean();
+        thread_free();
         sched_idle();
     }
 }
 
 uint32_t kernel_idle_time(void)
 {
-    if(m_idle_thread != NULL)
-    {
-        return thread_time(m_idle_thread);
-    }
-    return 0;
+	return m_idle_thread ? thread_time(m_idle_thread) : 0;
 }
 
 uint32_t kernel_time(void)
@@ -77,7 +73,7 @@ uint32_t kernel_time(void)
 void kernel_tick(uint32_t time)
 {
     m_tick_count += time;
-    sched_time_tick(time);
+    sched_tick(time);
     sched_preempt();
 }
 
