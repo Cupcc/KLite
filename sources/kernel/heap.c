@@ -61,8 +61,8 @@ static void heap_lock(void)
         return;
     }
     sched_tcb_wait(sched_tcb_now, (struct tcb_list *)m_heap_mutex);
-    sched_unlock();
     sched_switch();
+    sched_unlock();
 }
 
 static void heap_unlock(void)
@@ -70,8 +70,8 @@ static void heap_unlock(void)
     sched_lock();
     if(sched_tcb_wake_one((struct tcb_list *)m_heap_mutex))
     {
-        sched_unlock();
         sched_preempt();
+        sched_unlock();
     }
     else
     {

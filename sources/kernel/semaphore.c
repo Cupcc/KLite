@@ -68,8 +68,8 @@ void sem_post(sem_t sem)
     sched_lock();
 	if(sched_tcb_wake_one((struct tcb_list *)p_sem))
     {
-        sched_unlock();
 		sched_preempt();
+        sched_unlock();
 		return;
     }
 	p_sem->data++;
@@ -88,8 +88,8 @@ void sem_wait(sem_t sem)
         return;
     }
     sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_sem);
-    sched_unlock();
     sched_switch();
+    sched_unlock();
 }
 
 bool sem_timed_wait(sem_t sem, uint32_t timeout)
@@ -109,8 +109,8 @@ bool sem_timed_wait(sem_t sem, uint32_t timeout)
         return false;
     }
     sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)p_sem, timeout);
-    sched_unlock();
     sched_switch();
+    sched_unlock();
     return (sched_tcb_now->timeout != 0);
 }
 

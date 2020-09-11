@@ -73,8 +73,8 @@ void mutex_lock(mutex_t mutex)
         return;
 	}
     sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_mutex);
-    sched_unlock();
     sched_switch();
+    sched_unlock();
 }
 
 void mutex_unlock(mutex_t mutex)
@@ -94,8 +94,8 @@ void mutex_unlock(mutex_t mutex)
     {
 		p_mutex->owner = p_tcb;
 		p_mutex->lock++;
-        sched_unlock();
         sched_preempt();
+        sched_unlock();
 		return;
     }
 	sched_unlock();

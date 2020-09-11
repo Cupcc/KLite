@@ -28,7 +28,7 @@
 #include "sched.h"
 
 #define MAKE_VERSION_CODE(a,b,c)    ((a<<24)|(b<<16)|(c))
-#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,1,0)
+#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,1,1)
 
 static uint32_t m_tick_count;
 static thread_t m_idle_thread;
@@ -41,12 +41,14 @@ void kernel_init(uint32_t heap_addr, uint32_t heap_size)
     m_tick_count = 0;
     m_idle_thread = NULL;
     sched_init();
+	sched_lock();
     heap_init(heap_addr, heap_size);
 }
 
 void kernel_start(void)
 {
     sched_switch();
+	sched_unlock();
 }
 
 void kernel_idle(void)
@@ -72,9 +74,11 @@ uint32_t kernel_time(void)
 
 void kernel_tick(uint32_t time)
 {
+    sched_lock();
     m_tick_count += time;
     sched_tick(time);
     sched_preempt();
+    sched_unlock();
 }
 
 uint32_t kernel_version(void)

@@ -34,7 +34,7 @@ struct tcb             *sched_tcb_new;
 static struct tcb_list  sched_list_sleep;
 static struct tcb_list  sched_list_ready;
 static uint32_t         sched_time_sleep;
-static uint32_t         sched_time_pend;
+static uint32_t         sched_lock_count;
 
 static void list_sorted_insert(struct tcb_list *list, struct tcb_node *node)
 {
@@ -190,20 +190,10 @@ void sched_tick(uint32_t time)
     struct tcb *tcb;
     struct tcb_node *node;
     struct tcb_node *next;
-    cpu_irq_disable();
     if(sched_tcb_now != NULL)
     {
         sched_tcb_now->time += time;
     }
-    if(sched_time_sleep > time)
-    {
-        sched_time_sleep -= time;
-        sched_time_pend += time;
-        cpu_irq_enable();
-        return;
-    }
-    time += sched_time_pend;
-    sched_time_pend = 0;
     sched_time_sleep = -1U;
     for(node = sched_list_sleep.head; node != NULL; node = next)
     {
@@ -220,54 +210,49 @@ void sched_tick(uint32_t time)
             sched_tcb_wake(tcb);
         }
     }
-    cpu_irq_enable();
 }
 
 void sched_preempt(void)
 {
     struct tcb *tcb;
-    cpu_irq_disable();
     if(sched_tcb_now == NULL)
     {
-        cpu_irq_enable();
         return;
     }
     if(sched_tcb_now->state != TCB_STATE_RUNNING)
     {
-        cpu_irq_enable();
         return;
     }
     if(sched_list_ready.head == NULL)
     {
-        cpu_irq_enable();
         return;
     }
     tcb = sched_list_ready.head->tcb;
     if(tcb->prio < sched_tcb_now->prio)
     {
-        cpu_irq_enable();
         return;
     }
     sched_tcb_ready(sched_tcb_now);
     sched_tcb_run(tcb);
-    cpu_irq_enable();
 }
 
 void sched_switch(void)
 {
-    cpu_irq_disable();
     sched_tcb_run(sched_list_ready.head->tcb);
-    cpu_irq_enable();
 }
 
 void sched_lock(void)
 {
-    cpu_irq_disable();
+	cpu_irq_disable();
+	sched_lock_count++;
 }
 
 void sched_unlock(void)
 {
-    cpu_irq_enable();
+	if(--sched_lock_count == 0)
+	{
+		cpu_irq_enable();
+	}
 }
 
 void sched_idle(void)
@@ -279,7 +264,7 @@ void sched_init(void)
 {
     sched_tcb_now = NULL;
     sched_tcb_new = NULL;
-    sched_time_pend = 0;
+	sched_lock_count = 0;
     sched_time_sleep = -1U;
     list_init(&sched_list_ready);
     list_init(&sched_list_sleep);

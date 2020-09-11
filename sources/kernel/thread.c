@@ -71,24 +71,24 @@ void thread_suspend(void)
 {
     sched_lock();
     sched_tcb_suspend(sched_tcb_now);
-    sched_unlock();
     sched_switch();
+    sched_unlock();
 }
 
 void thread_resume(thread_t thread)
 {
     sched_lock();
     sched_tcb_resume(thread);
-    sched_unlock();
     sched_preempt();
+    sched_unlock();
 }
 
 void thread_sleep(uint32_t time)
 {
     sched_lock();
     sched_tcb_sleep(sched_tcb_now, time);
-    sched_unlock();
     sched_switch();
+    sched_unlock();
 }
 
 uint32_t thread_time(thread_t thread)
@@ -120,8 +120,8 @@ void thread_exit(void)
     sched_lock();
     sched_tcb_suspend(sched_tcb_now);
 	list_append(&m_list_exit, &sched_tcb_now->node_sched);
-    sched_unlock();
     sched_switch();
+    sched_unlock();
 }
 
 void thread_free(void)
