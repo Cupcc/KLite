@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2019 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -38,28 +38,28 @@ extern void thread_free(void);
 
 void kernel_init(uint32_t heap_addr, uint32_t heap_size)
 {
-    m_tick_count = 0;
-    m_idle_thread = NULL;
-    sched_init();
+	m_tick_count = 0;
+	m_idle_thread = NULL;
+	sched_init();
 	sched_lock();
-    heap_init(heap_addr, heap_size);
+	heap_init(heap_addr, heap_size);
 }
 
 void kernel_start(void)
 {
-    sched_switch();
+	sched_switch();
 	sched_unlock();
 }
 
 void kernel_idle(void)
 {
-    m_idle_thread = thread_self();
-    thread_set_priority(m_idle_thread, THREAD_PRIORITY_IDLE - 1);
-    while(1)
-    {
-        thread_free();
-        sched_idle();
-    }
+	m_idle_thread = thread_self();
+	thread_set_priority(m_idle_thread, THREAD_PRIORITY_IDLE - 1);
+	while(1)
+	{
+		thread_free();
+		sched_idle();
+	}
 }
 
 uint32_t kernel_idle_time(void)
@@ -69,19 +69,19 @@ uint32_t kernel_idle_time(void)
 
 uint32_t kernel_time(void)
 {
-    return m_tick_count;
+	return m_tick_count;
 }
 
 void kernel_tick(uint32_t time)
 {
-    sched_lock();
-    m_tick_count += time;
-    sched_tick(time);
-    sched_preempt();
-    sched_unlock();
+	sched_lock();
+	m_tick_count += time;
+	sched_tick(time);
+	sched_preempt();
+	sched_unlock();
 }
 
 uint32_t kernel_version(void)
 {
-    return KERNEL_VERSION_CODE;
+	return KERNEL_VERSION_CODE;
 }

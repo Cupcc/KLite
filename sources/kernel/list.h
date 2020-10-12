@@ -31,86 +31,86 @@
 
 struct __node
 {
-    struct __node *prev;
-    struct __node *next;
+	struct __node *prev;
+	struct __node *next;
 };
 
 struct __list
 {
-    struct __node *head;
-    struct __node *tail;
+	struct __node *head;
+	struct __node *tail;
 };
 
 static void list_init(void *list)
 {
-    ((struct __list *)list)->head = NULL;
-    ((struct __list *)list)->tail = NULL;
+	((struct __list *)list)->head = NULL;
+	((struct __list *)list)->tail = NULL;
 }
 
 static void list_remove(void *list, void *node)
 {
-    if(((struct __node *)node)->prev == NULL)
-    {
-        ((struct __list *)list)->head = ((struct __node *)node)->next;
-    }
-    else
-    {
-        ((struct __node *)node)->prev->next = ((struct __node *)node)->next;
-    }
-    if(((struct __node *)node)->next == NULL)
-    {
-        ((struct __list *)list)->tail = ((struct __node *)node)->prev;
-    }
-    else
-    {
-        ((struct __node *)node)->next->prev = ((struct __node *)node)->prev;
-    }
+	if(((struct __node *)node)->prev == NULL)
+	{
+		((struct __list *)list)->head = ((struct __node *)node)->next;
+	}
+	else
+	{
+		((struct __node *)node)->prev->next = ((struct __node *)node)->next;
+	}
+	if(((struct __node *)node)->next == NULL)
+	{
+		((struct __list *)list)->tail = ((struct __node *)node)->prev;
+	}
+	else
+	{
+		((struct __node *)node)->next->prev = ((struct __node *)node)->prev;
+	}
 }
 
 static void list_insert_before(void *list, void *before, void *node)
 {
-    ((struct __node *)node)->next = before;
-    if(before == NULL)
-    {
-        ((struct __node *)node)->prev = ((struct __list *)list)->tail;
-        ((struct __list *)list)->tail = node;
-    }
-    else
-    {
-        ((struct __node *)node)->prev = ((struct __node *)before)->prev;
-        ((struct __node *)before)->prev = node;
-    }
-    if(((struct __node *)node)->prev == NULL)
-    {
-        ((struct __list *)list)->head = node;
-    }
-    else
-    {
-        ((struct __node *)node)->prev->next = node;
-    }
+	((struct __node *)node)->next = before;
+	if(before == NULL)
+	{
+		((struct __node *)node)->prev = ((struct __list *)list)->tail;
+		((struct __list *)list)->tail = node;
+	}
+	else
+	{
+		((struct __node *)node)->prev = ((struct __node *)before)->prev;
+		((struct __node *)before)->prev = node;
+	}
+	if(((struct __node *)node)->prev == NULL)
+	{
+		((struct __list *)list)->head = node;
+	}
+	else
+	{
+		((struct __node *)node)->prev->next = node;
+	}
 }
 
 static void list_insert_after(void *list, void *after, void *node)
 {
-    ((struct __node *)node)->prev = after;
-    if(after == NULL)
-    {
-        ((struct __node *)node)->next = ((struct __list *)list)->head;
-        ((struct __list *)list)->head = node;
-    }
-    else
-    {
-        ((struct __node *)node)->next = ((struct __node *)after)->next;
-        ((struct __node *)after)->next = node;
-    }
-    if(((struct __node *)node)->next == NULL)
-    {
-        ((struct __list *)list)->tail = node;
-    }
-    else
-    {
-        ((struct __node *)node)->next->prev = node;
-    }
+	((struct __node *)node)->prev = after;
+	if(after == NULL)
+	{
+		((struct __node *)node)->next = ((struct __list *)list)->head;
+		((struct __list *)list)->head = node;
+	}
+	else
+	{
+		((struct __node *)node)->next = ((struct __node *)after)->next;
+		((struct __node *)after)->next = node;
+	}
+	if(((struct __node *)node)->next == NULL)
+	{
+		((struct __list *)list)->tail = node;
+	}
+	else
+	{
+		((struct __node *)node)->next->prev = node;
+	}
 }
 
 #define list_prepend(list, node) list_insert_after(list, NULL, node)

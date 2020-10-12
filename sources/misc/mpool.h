@@ -3,12 +3,12 @@
 
 struct mpool
 {
-    mutex_t   mutex;
+	mutex_t   mutex;
 	uint32_t* blk_addr;
-    uint32_t  blk_count;
-    uint32_t  blk_free;
+	uint32_t  blk_count;
+	uint32_t  blk_free;
 	uint32_t  next_alloc;
-    uint32_t  next_free;
+	uint32_t  next_free;
 };
 
 typedef struct mpool * mpool_t;

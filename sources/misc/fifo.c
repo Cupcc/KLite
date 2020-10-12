@@ -30,8 +30,8 @@ uint32_t fifo_write(fifo_t fifo, void *buf, uint32_t len)
 	uint32_t i;
 	uint32_t rx;
 	uint8_t  *p = buf;
-    
-    for(i = 0; i < len; i++)
+	
+	for(i = 0; i < len; i++)
 	{
 		rx = fifo->rx + 1;
 		if(rx == fifo->size)

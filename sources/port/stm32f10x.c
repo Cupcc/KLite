@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2019 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -49,19 +49,19 @@ void cpu_sys_init(void)
 	RCC_PLLCmd(ENABLE);
 	while(!RCC_GetFlagStatus(RCC_FLAG_PLLRDY));
 	RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
-    
-    SysTick_Config(CPU_FREQ_MHZ * 1000);
-    NVIC_SetPriorityGrouping(NVIC_PriorityGroup_0);
+	
+	SysTick_Config(CPU_FREQ_MHZ * 1000);
+	NVIC_SetPriorityGrouping(NVIC_PriorityGroup_0);
 	NVIC_SetPriority(PendSV_IRQn, 255);
 	NVIC_SetPriority(SysTick_IRQn, 255);
 }
 
 void cpu_sys_idle(uint32_t time)
 {
-    __wfi();
+	__wfi();
 }
 
 void SysTick_Handler(void)
 {
-    kernel_tick(1);
+	kernel_tick(1);
 }

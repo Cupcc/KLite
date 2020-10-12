@@ -3,12 +3,12 @@
 
 typedef struct timer
 {
-    struct timer *prev;
-    struct timer *next;
-    uint32_t counter;
-    uint32_t timeout;
-    void   (*handler)(void *);
-    void    *arg;
+	struct timer *prev;
+	struct timer *next;
+	uint32_t counter;
+	uint32_t timeout;
+	void   (*handler)(void *);
+	void    *arg;
 }timer_t;
 
 void    timer_init(uint32_t stk_size, int prio);

@@ -1,5 +1,5 @@
 ;/******************************************************************************
-;* Copyright (c) 2015-2019 jiangxiaogang<kerndev@foxmail.com>
+;* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
 ;*
 ;* This file is part of KLite distribution.
 ;*
@@ -25,38 +25,38 @@
 ;* SOFTWARE.
 ;******************************************************************************/
 
-    EXTERN  sched_tcb_now
-    EXTERN  sched_tcb_new
-    
-    PUBLIC  cpu_irq_enable
-    PUBLIC  cpu_irq_disable
-    PUBLIC  PendSV_Handler
-    
-    SECTION .text:CODE:NOROOT(4)
-    
+	EXTERN  sched_tcb_now
+	EXTERN  sched_tcb_new
+	
+	PUBLIC  cpu_irq_enable
+	PUBLIC  cpu_irq_disable
+	PUBLIC  PendSV_Handler
+	
+	SECTION .text:CODE:NOROOT(4)
+	
 cpu_irq_enable:
-    CPSIE   I
-    BX      LR
-    
+	CPSIE   I
+	BX      LR
+	
 cpu_irq_disable:
-    CPSID   I
-    BX      LR
-    
+	CPSID   I
+	BX      LR
+	
 PendSV_Handler:
-    CPSID   I
-    LDR     R0, =sched_tcb_now
-    LDR     R1, [R0]
-    CBZ     R1, POPSTACK
-    PUSH    {R4-R11}
-    STR     SP, [R1]
+	CPSID   I
+	LDR     R0, =sched_tcb_now
+	LDR     R1, [R0]
+	CBZ     R1, POPSTACK
+	PUSH    {R4-R11}
+	STR     SP, [R1]
 POPSTACK
-    LDR     R2, =sched_tcb_new
-    LDR     R3, [R2]
-    STR     R3, [R0]
-    LDR     SP, [R3]
-    POP     {R4-R11}
-    CPSIE   I
-    BX      LR
-    
-    END
-    
+	LDR     R2, =sched_tcb_new
+	LDR     R3, [R2]
+	STR     R3, [R0]
+	LDR     SP, [R3]
+	POP     {R4-R11}
+	CPSIE   I
+	BX      LR
+	
+	END
+	

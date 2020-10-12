@@ -4,9 +4,9 @@
 struct fifo
 {
 	uint8_t * buff;
-    uint32_t  size;
-    uint32_t  tx;
-    uint32_t  rx;
+	uint32_t  size;
+	uint32_t  tx;
+	uint32_t  rx;
 };
 
 typedef struct fifo *fifo_t;

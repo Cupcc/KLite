@@ -36,31 +36,31 @@
 
 struct tcb_list
 {
-    struct tcb_node *head;
-    struct tcb_node *tail;
+	struct tcb_node *head;
+	struct tcb_node *tail;
 };
 
 struct tcb_node
 {
-    struct tcb_node *prev;
-    struct tcb_node *next;
-    struct tcb      *tcb;
+	struct tcb_node *prev;
+	struct tcb_node *next;
+	struct tcb      *tcb;
 };
 
 struct tcb
 {
-    uintptr_t        stack;
-    uint32_t         stack_size;
-    void           (*entry)(void*);
-    void            *arg;
-    int              prio;
-    uint32_t         time;
-    uint32_t         timeout;
-    uint32_t         state;
-    struct tcb_list *list_sched;
-    struct tcb_list *list_wait;
-    struct tcb_node  node_sched;
-    struct tcb_node  node_wait;
+	uintptr_t        stack;
+	uint32_t         stack_size;
+	void           (*entry)(void*);
+	void            *arg;
+	int              prio;
+	uint32_t         time;
+	uint32_t         timeout;
+	uint32_t         state;
+	struct tcb_list *list_sched;
+	struct tcb_list *list_wait;
+	struct tcb_node  node_sched;
+	struct tcb_node  node_wait;
 };
 
 extern struct tcb *sched_tcb_now;

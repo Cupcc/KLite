@@ -3,8 +3,8 @@
 
 typedef struct
 {
-    event_t  event;
-    uint32_t data;
+	event_t  event;
+	uint32_t data;
 }mbox_t;
 
 bool   mbox_init(mbox_t *mbox);

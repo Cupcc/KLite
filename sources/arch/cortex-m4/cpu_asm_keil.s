@@ -1,5 +1,5 @@
 ;/******************************************************************************
-;* Copyright (c) 2015-2019 jiangxiaogang<kerndev@foxmail.com>
+;* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
 ;*
 ;* This file is part of KLite distribution.
 ;*
@@ -25,48 +25,48 @@
 ;* SOFTWARE.
 ;******************************************************************************/
 
-    IMPORT  sched_tcb_now
-    IMPORT  sched_tcb_new
+	IMPORT  sched_tcb_now
+	IMPORT  sched_tcb_new
 
-    EXPORT  cpu_irq_enable
-    EXPORT  cpu_irq_disable
-    EXPORT  PendSV_Handler
-    
-    AREA |.text|, CODE, READONLY, ALIGN=2
-    PRESERVE8
-    
+	EXPORT  cpu_irq_enable
+	EXPORT  cpu_irq_disable
+	EXPORT  PendSV_Handler
+	
+	AREA |.text|, CODE, READONLY, ALIGN=2
+	PRESERVE8
+	
 cpu_irq_enable  PROC
-    CPSIE       I
-    BX          LR
-    ENDP
-    
+	CPSIE       I
+	BX          LR
+	ENDP
+	
 cpu_irq_disable PROC
-    CPSID       I
-    BX          LR
-    ENDP
-    
+	CPSID       I
+	BX          LR
+	ENDP
+	
 PendSV_Handler  PROC
-    CPSID       I
-    LDR         R0, =sched_tcb_now
-    LDR         R1, [R0]
-    CBZ         R1, POPSTACK
-    TST         LR, #0x10
-    VPUSHEQ     {S16-S31}
-    PUSH        {LR,R4-R11}
-    STR         SP, [R1]
+	CPSID       I
+	LDR         R0, =sched_tcb_now
+	LDR         R1, [R0]
+	CBZ         R1, POPSTACK
+	TST         LR, #0x10
+	VPUSHEQ     {S16-S31}
+	PUSH        {LR,R4-R11}
+	STR         SP, [R1]
 POPSTACK
-    LDR         R2, =sched_tcb_new
-    LDR         R3, [R2]
-    STR         R3, [R0]
-    LDR         SP, [R3]
-    POP         {R4-R11}
-    POP         {LR}
-    TST         LR, #0x10
-    VPOPEQ      {S16-S31}
-    CPSIE       I
-    BX          LR
-    ALIGN
-    ENDP
+	LDR         R2, =sched_tcb_new
+	LDR         R3, [R2]
+	STR         R3, [R0]
+	LDR         SP, [R3]
+	POP         {R4-R11}
+	POP         {LR}
+	TST         LR, #0x10
+	VPOPEQ      {S16-S31}
+	CPSIE       I
+	BX          LR
+	ALIGN
+	ENDP
 
-    END
-    
+	END
+	
