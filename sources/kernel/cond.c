@@ -27,56 +27,63 @@
 #include "kernel.h"
 #include "sched.h"
 
-struct semaphore
+struct cond
 {
 	struct tcb_node *head;
 	struct tcb_node *tail;
-	uint32_t cur_value;
-	uint32_t max_value;
 };
 
-sem_t sem_create(uint32_t init_value, uint32_t max_value)
+cond_t cond_create(void)
 {
-	struct semaphore *p_sem;
-	p_sem = heap_alloc(sizeof(struct semaphore));
-	if(p_sem != NULL)
+	struct cond *p_cond;
+	p_cond = heap_alloc(sizeof(struct cond));
+	if(p_cond != NULL)
 	{
-		p_sem->head = NULL;
-		p_sem->tail = NULL;
-		p_sem->cur_value = init_value;
-		p_sem->max_value = max_value;
+		p_cond->head = NULL;
+		p_cond->tail = NULL;
 	}
-	return (sem_t)p_sem;
+	return (cond_t)p_cond;
 }
 
-void sem_delete(sem_t sem)
+void cond_delete(cond_t cond)
 {
-	heap_free(sem);
+	heap_free(cond);
 }
 
-void sem_reset(sem_t sem)
+void cond_wait(cond_t cond)
 {
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
+	struct cond *p_cond;
+	p_cond = (struct cond *)cond;
 	sched_lock();
-	p_sem->cur_value = 0;
+	sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_cond);
+	sched_switch();
 	sched_unlock();
 }
 
-bool sem_post(sem_t sem)
+bool cond_timed_wait(cond_t cond, uint32_t timeout)
 {
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
+	struct cond *p_cond;
+	p_cond = (struct cond *)cond;
 	sched_lock();
-	if(sched_tcb_wake_one((struct tcb_list *)p_sem))
+	if(timeout == 0)
+	{
+		sched_unlock();
+		return false;
+	}
+	sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)p_cond, timeout);
+	sched_switch();
+	sched_unlock();
+	return (sched_tcb_now->timeout != 0);
+}
+
+bool cond_signal(cond_t cond)
+{
+	struct cond *p_cond;
+	p_cond = (struct cond *)cond;
+	sched_lock();
+	if(sched_tcb_wake_one((struct tcb_list *)p_cond))
 	{
 		sched_preempt();
-		sched_unlock();
-		return true;
-	}
-	if(p_sem->cur_value < p_sem->max_value)
-	{
-		p_sem->cur_value++;
 		sched_unlock();
 		return true;
 	}
@@ -84,49 +91,18 @@ bool sem_post(sem_t sem)
 	return false;
 }
 
-void sem_wait(sem_t sem)
+bool cond_broadcast(cond_t cond)
 {
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
+	struct cond *p_cond;
+	p_cond = (struct cond *)cond;
 	sched_lock();
-	if(p_sem->cur_value > 0)
+	if(sched_tcb_wake_one((struct tcb_list *)p_cond))
 	{
-		p_sem->cur_value--;
-		sched_unlock();
-		return;
-	}
-	sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_sem);
-	sched_switch();
-	sched_unlock();
-}
-
-bool sem_timed_wait(sem_t sem, uint32_t timeout)
-{
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
-	sched_lock();
-	if(p_sem->cur_value > 0)
-	{
-		p_sem->cur_value--;
+		while(sched_tcb_wake_one((struct tcb_list *)p_cond));
+		sched_preempt();
 		sched_unlock();
 		return true;
 	}
-	if(timeout == 0)
-	{
-		sched_unlock();
-		return false;
-	}
-	sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)p_sem, timeout);
-	sched_switch();
 	sched_unlock();
-	return (sched_tcb_now->timeout != 0);
-}
-
-void sem_get_value(sem_t sem, uint32_t *value)
-{
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
-	sched_lock();
-	*value = p_sem->cur_value;
-	sched_unlock();
+	return false;
 }

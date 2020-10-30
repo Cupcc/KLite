@@ -35,6 +35,7 @@ typedef void *thread_t;
 typedef void *mutex_t;
 typedef void *event_t;
 typedef void *sem_t;
+typedef void *cond_t;
 
 /******************************************************************************
 * kernel
@@ -51,19 +52,19 @@ uint32_t kernel_version(void);
 * heap
 ******************************************************************************/
 void*    heap_alloc(uint32_t size);
-void     heap_free(void *ptr);
+void     heap_free(void *mem);
 void     heap_usage(uint32_t *total, uint32_t *used);
 
 /******************************************************************************
 * thread
 ******************************************************************************/
-#define THREAD_PRIORITY_REALTIME  (+3)
-#define THREAD_PRIORITY_HIGHEST   (+2)
-#define THREAD_PRIORITY_HIGH      (+1)
-#define THREAD_PRIORITY_NORMAL    (0)
-#define THREAD_PRIORITY_LOW       (-1)
-#define THREAD_PRIORITY_LOWEST    (-2)
-#define THREAD_PRIORITY_IDLE      (-3)
+#define  THREAD_PRIORITY_REALTIME  (+3)
+#define  THREAD_PRIORITY_HIGHEST   (+2)
+#define  THREAD_PRIORITY_HIGH      (+1)
+#define  THREAD_PRIORITY_NORMAL    (0)
+#define  THREAD_PRIORITY_LOW       (-1)
+#define  THREAD_PRIORITY_LOWEST    (-2)
+#define  THREAD_PRIORITY_IDLE      (-3)
 
 thread_t thread_create(void (*entry)(void*), void *arg, uint32_t stack_size);
 void     thread_delete(thread_t thread);
@@ -86,28 +87,35 @@ void     mutex_unlock(mutex_t mutex);
 bool     mutex_try_lock(mutex_t mutex);
 
 /******************************************************************************
+* semaphore
+******************************************************************************/
+sem_t    sem_create(uint32_t init_value, uint32_t max_value);
+void     sem_delete(sem_t sem);
+void     sem_reset(sem_t sem);
+bool     sem_post(sem_t sem);
+void     sem_wait(sem_t sem);
+bool     sem_timed_wait(sem_t sem, uint32_t timeout);
+void     sem_get_value(sem_t sem, uint32_t *value);
+
+/******************************************************************************
+* condition
+******************************************************************************/
+cond_t   cond_create(void);
+void     cond_delete(cond_t cond);
+bool     cond_signal(cond_t cond);
+bool     cond_broadcast(cond_t cond);
+void     cond_wait(cond_t cond);
+bool     cond_timed_wait(cond_t cond, uint32_t timeout);
+
+/******************************************************************************
 * event
 ******************************************************************************/
 event_t  event_create(void);
 void     event_delete(event_t event);
 void     event_reset(event_t event);
-bool     event_signal(event_t event);
-bool     event_broadcast(event_t event);
-void     event_fire(event_t event);
-void     event_post(event_t event);
-void     event_wait(event_t event);
-bool     event_timed_wait(event_t event, uint32_t timeout);
-
-/******************************************************************************
-* semaphore
-******************************************************************************/
-sem_t    sem_create(void);
-void     sem_delete(sem_t sem);
-void     sem_reset(sem_t sem);
-void     sem_post(sem_t sem);
-void     sem_wait(sem_t sem);
-bool     sem_timed_wait(sem_t sem, uint32_t timeout);
-int      sem_get_value(sem_t sem);
+void     event_post(event_t event, uint32_t value);
+void     event_wait(event_t event, uint32_t *value);
+bool     event_timed_wait(event_t event, uint32_t *value, uint32_t timeout);
 
 /******************************************************************************
 * alias
@@ -115,5 +123,6 @@ int      sem_get_value(sem_t sem);
 #define  malloc  heap_alloc
 #define  free    heap_free
 #define  sleep   thread_sleep
+#define  clock   kernel_time
 
 #endif
