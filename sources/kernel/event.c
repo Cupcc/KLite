@@ -79,6 +79,7 @@ void event_wait(event_t event, uint32_t *value)
 	sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_event);
 	sched_switch();
 	sched_unlock();
+	*value = p_event->value;
 }
 
 bool event_timed_wait(event_t event, uint32_t *value, uint32_t timeout)
