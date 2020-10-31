@@ -6,7 +6,7 @@
 #include "log.h"
 
 #define UART_PORT		1
-#define UART_BAUDRATE	115200
+#define UART_BAUDRATE	921600
 #define BUFF_LEN		1024
 
 static mutex_t  output_mutex;
