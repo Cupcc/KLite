@@ -31,7 +31,6 @@ struct event
 {
 	struct tcb_node *head;
 	struct tcb_node *tail;
-	uint32_t value;
 	bool valid;
 };
 
@@ -43,7 +42,6 @@ event_t event_create(void)
 	{
 		p_event->head = NULL;
 		p_event->tail = NULL;
-		p_event->value = 0;
 		p_event->valid = false;
 	}
 	return (event_t)p_event;
@@ -59,38 +57,42 @@ void event_reset(event_t event)
 	struct event *p_event;
 	p_event = (struct event *)event;
 	sched_lock();
-	p_event->value = 0;
 	p_event->valid = false;
 	sched_unlock();
 }
 
-void event_wait(event_t event, uint32_t *value)
+void event_set(event_t event)
+{
+	struct event *p_event;
+	p_event = (struct event *)event;
+	sched_lock();
+	p_event->valid = true;
+	while(sched_tcb_wake_one((struct tcb_list *)p_event));
+	sched_unlock();
+}
+
+void event_wait(event_t event)
 {
 	struct event *p_event;
 	p_event = (struct event *)event;
 	sched_lock();
 	if(p_event->valid)
 	{
-		*value = p_event->value;
-		p_event->valid = false;
 		sched_unlock();
 		return;
 	}
 	sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_event);
 	sched_switch();
 	sched_unlock();
-	*value = p_event->value;
 }
 
-bool event_timed_wait(event_t event, uint32_t *value, uint32_t timeout)
+bool event_timed_wait(event_t event, uint32_t timeout)
 {
 	struct event *p_event;
 	p_event = (struct event *)event;
 	sched_lock();
 	if(p_event->valid)
 	{
-		*value = p_event->value;
-		p_event->valid = false;
 		sched_unlock();
 		return true;
 	}
@@ -102,29 +104,5 @@ bool event_timed_wait(event_t event, uint32_t *value, uint32_t timeout)
 	sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)p_event, timeout);
 	sched_switch();
 	sched_unlock();
-	
-	if(sched_tcb_now->timeout == 0)
-	{
-		return false;
-	}
-	*value = p_event->value;
-	return true;
-}
-
-void event_post(event_t event, uint32_t value)
-{
-	struct event *p_event;
-	p_event = (struct event *)event;
-	sched_lock();
-	if(sched_tcb_wake_one((struct tcb_list *)p_event))
-	{
-		p_event->value = value;
-		sched_preempt();
-	}
-	else
-	{
-		p_event->valid = true;
-		p_event->value = value;
-	}
-	sched_unlock();
+	return (sched_tcb_now->timeout != 0);
 }

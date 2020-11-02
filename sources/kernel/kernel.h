@@ -112,10 +112,10 @@ bool     cond_timed_wait(cond_t cond, uint32_t timeout);
 ******************************************************************************/
 event_t  event_create(void);
 void     event_delete(event_t event);
+void     event_set(event_t event);
 void     event_reset(event_t event);
-void     event_post(event_t event, uint32_t value);
-void     event_wait(event_t event, uint32_t *value);
-bool     event_timed_wait(event_t event, uint32_t *value, uint32_t timeout);
+void     event_wait(event_t event);
+bool     event_timed_wait(event_t event, uint32_t timeout);
 
 /******************************************************************************
 * alias
