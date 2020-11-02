@@ -7,17 +7,11 @@
 #include "kernel.h"
 #include "mbox.h"
 
-struct mbox_object
-{
-	uint32_t data;
-	event_t  event;
-};
-
 bool mbox_init(mbox_t *mbox)
 {
 	mbox->data = 0;
-	mbox->event= event_create();
-	if(mbox->event != NULL)
+	mbox->sem = sem_create(0, 1);
+	if(mbox->sem != NULL)
 	{
 		return true;
 	}
@@ -26,25 +20,25 @@ bool mbox_init(mbox_t *mbox)
 
 void mbox_delete(mbox_t *mbox)
 {
-	event_delete(mbox->event);
+	sem_delete(mbox->sem);
 }
 
-void mbox_post(mbox_t *mbox, uint32_t data)
+void mbox_send(mbox_t *mbox, uint32_t data)
 {
 	mbox->data = data;
-	event_post(mbox->event);
+	sem_post(mbox->sem);
 }
 
-void mbox_wait(mbox_t *mbox, uint32_t *pdata)
+void mbox_wait(mbox_t *mbox, uint32_t *p_data)
 {
-	event_wait(mbox->event);
-	*pdata = mbox->data;
+	sem_wait(mbox->sem);
+	*p_data = mbox->data;
 }
 
-bool mbox_timed_wait(mbox_t *mbox, uint32_t *pdata, uint32_t timeout)
+bool mbox_timed_wait(mbox_t *mbox, uint32_t *p_data, uint32_t timeout)
 {
 	bool ret;
-	ret = event_timed_wait(mbox->event, timeout);
-	*pdata = mbox->data;
+	ret = sem_timed_wait(mbox->sem, timeout);
+	*p_data = mbox->data;
 	return ret;
 }

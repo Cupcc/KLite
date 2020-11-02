@@ -3,14 +3,14 @@
 
 typedef struct
 {
-	event_t  event;
+	sem_t sem;
 	uint32_t data;
 }mbox_t;
 
-bool   mbox_init(mbox_t *mbox);
+bool   mbox_create(mbox_t *mbox);
 void   mbox_delete(mbox_t *mbox);
-void   mbox_post(mbox_t *mbox, uint32_t data);
-void   mbox_wait(mbox_t *mbox, uint32_t *pdata);
-bool   mbox_timed_wait(mbox_t *mbox, uint32_t *pdata, uint32_t timeout);
+void   mbox_send(mbox_t *mbox, uint32_t data);
+void   mbox_recv(mbox_t *mbox, uint32_t *p_data);
+bool   mbox_timed_recv(mbox_t *mbox, uint32_t *p_data, uint32_t timeout);
 
 #endif

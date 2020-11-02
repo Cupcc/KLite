@@ -15,11 +15,12 @@ struct timer_list
 	timer_t *head;
 	timer_t *tail;
 	mutex_t  mutex;
-	event_t  event;
+	cond_t   cond;
 };
 
 static struct timer_list m_timer_list;
 
+//检查定时器
 //返回下一个定时器超时时间
 static uint32_t timer_time_tick(uint32_t tick)
 {
@@ -47,8 +48,8 @@ static uint32_t timer_time_tick(uint32_t tick)
 	return next_time;
 }
 
-//定时器线程
-//最多等待下一个定时器发作这么久的时间，就要去检查一下!
+//定时器工作线程
+//最多等待到下一个定时器发作这么久的时间，就要去检查一下!
 static void timer_thread_entry(void *arg)
 {
 	uint32_t last;
@@ -63,7 +64,7 @@ static void timer_thread_entry(void *arg)
 		tick = kernel_time() - last;
 		if(timeout > tick)
 		{
-			event_timed_wait(m_timer_list.event, timeout - tick);
+			cond_timed_wait(m_timer_list.cond, timeout - tick);
 		}
 	}
 }
@@ -78,7 +79,7 @@ void timer_start(timer_t *timer, uint32_t timeout, void (*handler)(void *), void
 	mutex_lock(m_timer_list.mutex);
 	list_append(&m_timer_list, timer);
 	mutex_unlock(m_timer_list.mutex);
-	event_post(m_timer_list.event);
+	cond_signal(m_timer_list.cond);
 }
 
 //停止定时器
@@ -87,7 +88,7 @@ void timer_stop(timer_t *timer)
 	mutex_lock(m_timer_list.mutex);
 	list_remove(&m_timer_list, timer);
 	mutex_unlock(m_timer_list.mutex);
-	event_post(m_timer_list.event);
+	cond_signal(m_timer_list.cond);
 }
 
 //初始化定时器模块
@@ -97,7 +98,7 @@ void timer_init(uint32_t stk_size, int prio)
 	thread_t thread;
 	list_init(&m_timer_list);
 	m_timer_list.mutex = mutex_create();
-	m_timer_list.event = event_create();
+	m_timer_list.cond = cond_create();
 	thread = thread_create(timer_thread_entry, 0, stk_size);
 	thread_set_priority(thread, prio);
 }

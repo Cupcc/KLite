@@ -3,7 +3,7 @@
 
 struct fifo
 {
-	uint8_t * buff;
+	uint8_t  *buff;
 	uint32_t  size;
 	uint32_t  tx;
 	uint32_t  rx;
