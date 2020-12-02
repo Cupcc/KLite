@@ -29,13 +29,7 @@ void mbox_send(mbox_t *mbox, uint32_t data)
 	sem_post(mbox->sem);
 }
 
-void mbox_wait(mbox_t *mbox, uint32_t *p_data)
-{
-	sem_wait(mbox->sem);
-	*p_data = mbox->data;
-}
-
-bool mbox_timed_wait(mbox_t *mbox, uint32_t *p_data, uint32_t timeout)
+bool mbox_recv(mbox_t *mbox, uint32_t *p_data, uint32_t timeout)
 {
 	bool ret;
 	ret = sem_timed_wait(mbox->sem, timeout);
