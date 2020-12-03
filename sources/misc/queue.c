@@ -28,7 +28,9 @@ void queue_delete(queue_t *queue)
 bool queue_send(queue_t *queue, void *data, int size)
 {
 	uint32_t ret;
+	mutex_lock(queue->mutex);
 	ret = fifo_write(queue->fifo, data, size);
+	mutex_unlock(queue->mutex);
 	sem_post(queue->sem);
 	return ret == size;
 }
@@ -36,14 +38,18 @@ bool queue_send(queue_t *queue, void *data, int size)
 int queue_recv(queue_t *queue, void *data, int size, int timeout)
 {
 	int ret;
-	ret = 0;
-	while(ret < size)
+	while(1)
 	{
-		ret += fifo_read(queue->fifo, data, size);
+		mutex_lock(queue->mutex);
+		ret = fifo_read(queue->fifo, data, size);
+		mutex_unlock(queue->mutex);
+		if(ret > 0)
+		{
+			return ret;
+		}
 		if(!sem_timed_wait(queue->sem, timeout))
 		{
-			break;
+			return 0;
 		}
 	}
-	return ret;
 }
