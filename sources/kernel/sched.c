@@ -249,7 +249,8 @@ void sched_lock(void)
 
 void sched_unlock(void)
 {
-	if(--sched_lock_count == 0)
+	sched_lock_count--;
+	if(sched_lock_count == 0)
 	{
 		cpu_irq_enable();
 	}
