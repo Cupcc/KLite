@@ -28,7 +28,7 @@
 #include "sched.h"
 
 #define MAKE_VERSION_CODE(a,b,c)    ((a<<24)|(b<<16)|(c))
-#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,1,1)
+#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,2,0)
 
 static uint32_t m_tick_count;
 static thread_t m_idle_thread;
