@@ -55,6 +55,7 @@ void kernel_idle(void)
 {
 	m_idle_thread = thread_self();
 	thread_set_priority(m_idle_thread, THREAD_PRIORITY_IDLE - 1);
+	thread_sleep(1);
 	while(1)
 	{
 		thread_free();
@@ -74,8 +75,8 @@ uint32_t kernel_time(void)
 
 void kernel_tick(uint32_t time)
 {
-	sched_lock();
 	m_tick_count += time;
+	sched_lock();
 	sched_tick(time);
 	sched_preempt();
 	sched_unlock();
