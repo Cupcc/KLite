@@ -55,7 +55,6 @@ void kernel_idle(void)
 {
 	m_idle_thread = thread_self();
 	thread_set_priority(m_idle_thread, THREAD_PRIORITY_IDLE - 1);
-	thread_sleep(1);
 	while(1)
 	{
 		thread_free();
