@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -70,7 +70,7 @@ static void heap_unlock(void)
 	sched_lock();
 	if(sched_tcb_wake_one((struct tcb_list *)m_heap_mutex))
 	{
-		sched_preempt();
+		sched_preempt(false);
 		sched_unlock();
 	}
 	else

@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -94,7 +94,7 @@ void mutex_unlock(mutex_t mutex)
 	{
 		p_mutex->owner = p_tcb;
 		p_mutex->lock++;
-		sched_preempt();
+		sched_preempt(false);
 		sched_unlock();
 		return;
 	}

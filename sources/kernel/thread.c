@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -79,7 +79,7 @@ void thread_resume(thread_t thread)
 {
 	sched_lock();
 	sched_tcb_resume(thread);
-	sched_preempt();
+	sched_preempt(false);
 	sched_unlock();
 }
 

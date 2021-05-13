@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -31,10 +31,10 @@
 
 struct tcb             *sched_tcb_now;
 struct tcb             *sched_tcb_new;
-static struct tcb_list  sched_list_sleep;
-static struct tcb_list  sched_list_ready;
-static uint32_t         sched_time_sleep;
-static uint32_t         sched_lock_count;
+static struct tcb_list  m_list_sleep;
+static struct tcb_list  m_list_ready;
+static uint32_t         m_lock_count;
+static uint32_t         m_idle_time;
 
 static void list_sorted_insert(struct tcb_list *list, struct tcb_node *node)
 {
@@ -102,17 +102,17 @@ void sched_tcb_run(struct tcb *tcb)
 void sched_tcb_ready(struct tcb *tcb)
 {
 	tcb->state = TCB_STATE_READY;
-	tcb->list_sched = &sched_list_ready;
-	list_sorted_insert(&sched_list_ready, &tcb->node_sched);
+	tcb->list_sched = &m_list_ready;
+	list_sorted_insert(&m_list_ready, &tcb->node_sched);
 }
 
 void sched_tcb_sleep(struct tcb *tcb, uint32_t timeout)
 {
 	tcb->state = TCB_STATE_SLEEP;
 	tcb->timeout = timeout;
-	tcb->list_sched = &sched_list_sleep;
-	list_append(&sched_list_sleep, &tcb->node_sched);
-	sched_time_sleep = (sched_time_sleep < timeout) ? sched_time_sleep : timeout;
+	tcb->list_sched = &m_list_sleep;
+	list_append(&m_list_sleep, &tcb->node_sched);
+	m_idle_time = (m_idle_time < timeout) ? m_idle_time : timeout;
 }
 
 void sched_tcb_suspend(struct tcb *tcb)
@@ -133,8 +133,8 @@ void sched_tcb_resume(struct tcb *tcb)
 	if(tcb->state == TCB_STATE_SUSPEND)
 	{
 		tcb->state = TCB_STATE_READY;
-		tcb->list_sched = &sched_list_ready;
-		list_sorted_insert(&sched_list_ready, &tcb->node_sched);
+		tcb->list_sched = &m_list_ready;
+		list_sorted_insert(&m_list_ready, &tcb->node_sched);
 	}
 }
 
@@ -150,10 +150,10 @@ void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list, uint32_t timeo
 	tcb->state = TCB_STATE_TIMEDWAIT;
 	tcb->timeout = timeout;
 	tcb->list_wait = list;
-	tcb->list_sched = &sched_list_sleep;
+	tcb->list_sched = &m_list_sleep;
 	list_sorted_insert(list, &tcb->node_wait);
-	list_append(&sched_list_sleep, &tcb->node_sched);
-	sched_time_sleep = (sched_time_sleep < timeout) ? sched_time_sleep : timeout;
+	list_append(&m_list_sleep, &tcb->node_sched);
+	m_idle_time = (m_idle_time < timeout) ? m_idle_time : timeout;
 }
 
 void sched_tcb_wake(struct tcb *tcb)
@@ -169,8 +169,8 @@ void sched_tcb_wake(struct tcb *tcb)
 		tcb->list_sched = NULL;
 	}
 	tcb->state = TCB_STATE_READY;
-	tcb->list_sched = &sched_list_ready;
-	list_sorted_insert(&sched_list_ready, &tcb->node_sched);
+	tcb->list_sched = &m_list_ready;
+	list_sorted_insert(&m_list_ready, &tcb->node_sched);
 }
 
 struct tcb * sched_tcb_wake_one(struct tcb_list *list)
@@ -194,15 +194,15 @@ void sched_tick(uint32_t time)
 	{
 		sched_tcb_now->time += time;
 	}
-	sched_time_sleep = -1U;
-	for(node = sched_list_sleep.head; node != NULL; node = next)
+	m_idle_time = -1U;
+	for(node = m_list_sleep.head; node != NULL; node = next)
 	{
 		next = node->next;
 		tcb = node->tcb;
 		if(tcb->timeout > time)
 		{
 			tcb->timeout -= time;
-			sched_time_sleep = (sched_time_sleep < tcb->timeout) ? sched_time_sleep : tcb->timeout;
+			m_idle_time = (m_idle_time < tcb->timeout) ? m_idle_time : tcb->timeout;
 		}
 		else
 		{
@@ -212,7 +212,7 @@ void sched_tick(uint32_t time)
 	}
 }
 
-void sched_preempt(void)
+void sched_preempt(bool round_robin)
 {
 	struct tcb *tcb;
 	if(sched_tcb_now == NULL)
@@ -223,34 +223,33 @@ void sched_preempt(void)
 	{
 		return;
 	}
-	if(sched_list_ready.head == NULL)
+	if(m_list_ready.head == NULL)
 	{
 		return;
 	}
-	tcb = sched_list_ready.head->tcb;
-	if(tcb->prio < sched_tcb_now->prio)
+	tcb = m_list_ready.head->tcb;
+	if((tcb->prio + round_robin) > sched_tcb_now->prio)
 	{
-		return;
+		sched_tcb_ready(sched_tcb_now);
+		sched_tcb_run(tcb);
 	}
-	sched_tcb_ready(sched_tcb_now);
-	sched_tcb_run(tcb);
 }
 
 void sched_switch(void)
 {
-	sched_tcb_run(sched_list_ready.head->tcb);
+	sched_tcb_run(m_list_ready.head->tcb);
 }
 
 void sched_lock(void)
 {
 	cpu_irq_disable();
-	sched_lock_count++;
+	m_lock_count++;
 }
 
 void sched_unlock(void)
 {
-	sched_lock_count--;
-	if(sched_lock_count == 0)
+	m_lock_count--;
+	if(m_lock_count == 0)
 	{
 		cpu_irq_enable();
 	}
@@ -258,16 +257,16 @@ void sched_unlock(void)
 
 void sched_idle(void)
 {
-	cpu_sys_idle(sched_time_sleep);
+	cpu_sys_idle(m_idle_time);
 }
 
 void sched_init(void)
 {
 	sched_tcb_now = NULL;
 	sched_tcb_new = NULL;
-	sched_lock_count = 0;
-	sched_time_sleep = -1U;
-	list_init(&sched_list_ready);
-	list_init(&sched_list_sleep);
+	m_lock_count = 0;
+	m_idle_time = -1U;
+	list_init(&m_list_ready);
+	list_init(&m_list_sleep);
 	cpu_sys_init();
 }

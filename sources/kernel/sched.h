@@ -27,12 +27,15 @@
 #ifndef __SCHED_H
 #define __SCHED_H
 
-#define TCB_STATE_RUNNING    0x00
-#define TCB_STATE_READY      0x01
-#define TCB_STATE_SLEEP      0x02
-#define TCB_STATE_WAIT       0x03
-#define TCB_STATE_TIMEDWAIT  0x04
-#define TCB_STATE_SUSPEND    0x05
+typedef enum
+{
+	TCB_STATE_RUNNING=0x00,
+	TCB_STATE_READY,
+	TCB_STATE_SLEEP,
+	TCB_STATE_WAIT,
+	TCB_STATE_TIMEDWAIT,
+	TCB_STATE_SUSPEND,
+}tcb_state_t;
 
 struct tcb_list
 {
@@ -56,7 +59,7 @@ struct tcb
 	int              prio;
 	uint32_t         time;
 	uint32_t         timeout;
-	uint32_t         state;
+	tcb_state_t      state;
 	struct tcb_list *list_sched;
 	struct tcb_list *list_wait;
 	struct tcb_node  node_sched;
@@ -71,7 +74,7 @@ void sched_idle(void);
 void sched_lock(void);
 void sched_unlock(void);
 void sched_switch(void);
-void sched_preempt(void);
+void sched_preempt(bool round_robin);
 void sched_tick(uint32_t time);
 void sched_tcb_init(struct tcb *tcb);
 void sched_tcb_sort(struct tcb *tcb);

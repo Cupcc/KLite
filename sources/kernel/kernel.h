@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -35,7 +35,6 @@ typedef void *thread_t;
 typedef void *mutex_t;
 typedef void *event_t;
 typedef void *sem_t;
-typedef void *cond_t;
 
 /******************************************************************************
 * kernel
@@ -91,29 +90,19 @@ bool     mutex_try_lock(mutex_t mutex);
 ******************************************************************************/
 sem_t    sem_create(uint32_t init_value, uint32_t max_value);
 void     sem_delete(sem_t sem);
-void     sem_reset(sem_t sem);
 bool     sem_post(sem_t sem);
 void     sem_wait(sem_t sem);
 bool     sem_timed_wait(sem_t sem, uint32_t timeout);
 void     sem_get_value(sem_t sem, uint32_t *value);
 
 /******************************************************************************
-* condition
-******************************************************************************/
-cond_t   cond_create(void);
-void     cond_delete(cond_t cond);
-bool     cond_signal(cond_t cond);
-bool     cond_broadcast(cond_t cond);
-void     cond_wait(cond_t cond);
-bool     cond_timed_wait(cond_t cond, uint32_t timeout);
-
-/******************************************************************************
 * event
 ******************************************************************************/
-event_t  event_create(void);
+event_t  event_create(bool auto_reset);
 void     event_delete(event_t event);
 void     event_set(event_t event);
 void     event_reset(event_t event);
+void     event_pulse(event_t event);
 void     event_wait(event_t event);
 bool     event_timed_wait(event_t event, uint32_t timeout);
 

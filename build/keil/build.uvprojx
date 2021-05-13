@@ -10,7 +10,7 @@
       <TargetName>cortex-m0</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060422::V5.06 update 4 (build 422)::.\ArmCC</pCCUsed>
+      <pCCUsed>5060422::V5.06 update 4 (build 422)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>ARMCM0</Device>
@@ -375,11 +375,6 @@
         <Group>
           <GroupName>kernel</GroupName>
           <Files>
-            <File>
-              <FileName>cond.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\kernel\cond.c</FilePath>
-            </File>
             <File>
               <FileName>event.c</FileName>
               <FileType>1</FileType>
@@ -962,11 +957,6 @@
           <GroupName>kernel</GroupName>
           <Files>
             <File>
-              <FileName>cond.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\kernel\cond.c</FilePath>
-            </File>
-            <File>
               <FileName>event.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sources\kernel\event.c</FilePath>
@@ -1182,7 +1172,7 @@
       <TargetName>cortex-m4</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060422::V5.06 update 4 (build 422)::.\ArmCC</pCCUsed>
+      <pCCUsed>5060422::V5.06 update 4 (build 422)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>ARMCM4_FP</Device>
@@ -1547,11 +1537,6 @@
         <Group>
           <GroupName>kernel</GroupName>
           <Files>
-            <File>
-              <FileName>cond.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\kernel\cond.c</FilePath>
-            </File>
             <File>
               <FileName>event.c</FileName>
               <FileType>1</FileType>

@@ -10,7 +10,7 @@
       <TargetName>stm32f429</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060422::V5.06 update 4 (build 422)::.\ArmCC</pCCUsed>
+      <pCCUsed>5060422::V5.06 update 4 (build 422)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>STM32F429VE</Device>
@@ -136,7 +136,7 @@
             <DriverSelection>4096</DriverSelection>
           </Flash1>
           <bUseTDR>1</bUseTDR>
-          <Flash2>UL2CM3.dll</Flash2>
+          <Flash2>BIN\UL2CM3.DLL</Flash2>
           <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
@@ -479,11 +479,6 @@
               <FileName>thread.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sources\kernel\thread.c</FilePath>
-            </File>
-            <File>
-              <FileName>cond.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\kernel\cond.c</FilePath>
             </File>
             <File>
               <FileName>sem.c</FileName>

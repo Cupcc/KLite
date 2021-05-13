@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -54,15 +54,6 @@ void sem_delete(sem_t sem)
 	heap_free(sem);
 }
 
-void sem_reset(sem_t sem)
-{
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
-	sched_lock();
-	p_sem->cur_value = 0;
-	sched_unlock();
-}
-
 bool sem_post(sem_t sem)
 {
 	struct semaphore *p_sem;
@@ -70,7 +61,7 @@ bool sem_post(sem_t sem)
 	sched_lock();
 	if(sched_tcb_wake_one((struct tcb_list *)p_sem))
 	{
-		sched_preempt();
+		sched_preempt(false);
 		sched_unlock();
 		return true;
 	}

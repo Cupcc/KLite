@@ -2897,6 +2897,9 @@
       <name>$PROJ_DIR$\..\..\sources\kernel\sched.c</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\..\..\sources\kernel\sem.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\..\..\sources\kernel\thread.c</name>
     </file>
   </group>

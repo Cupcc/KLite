@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2020 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -28,7 +28,7 @@
 #include "sched.h"
 
 #define MAKE_VERSION_CODE(a,b,c)    ((a<<24)|(b<<16)|(c))
-#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,2,0)
+#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(4,3,0)
 
 static uint32_t m_tick_count;
 static thread_t m_idle_thread;
@@ -77,7 +77,7 @@ void kernel_tick(uint32_t time)
 	m_tick_count += time;
 	sched_lock();
 	sched_tick(time);
-	sched_preempt();
+	sched_preempt(true);
 	sched_unlock();
 }
 
