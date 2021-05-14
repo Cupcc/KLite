@@ -107,6 +107,10 @@ void event_wait(event_t event)
 	sched_lock();
 	if(p_event->flag)
 	{
+		if(p_event->auto_reset)
+		{
+			p_event->flag = false;
+		}
 		sched_unlock();
 		return;
 	}
@@ -122,6 +126,10 @@ bool event_timed_wait(event_t event, uint32_t timeout)
 	sched_lock();
 	if(p_event->flag)
 	{
+		if(p_event->auto_reset)
+		{
+			p_event->flag = false;
+		}
 		sched_unlock();
 		return true;
 	}
