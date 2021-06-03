@@ -124,7 +124,7 @@ void thread_exit(void)
 	sched_unlock();
 }
 
-void thread_free(void)
+void thread_clean_up(void)
 {
 	struct tcb_node *node;
 	while(m_list_exit.head)

@@ -24,6 +24,7 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
+#include <limits.h>
 #include "kernel.h"
 #include "sched.h"
 
@@ -34,7 +35,7 @@ static uint32_t m_tick_count;
 static thread_t m_idle_thread;
 
 extern void heap_init(uint32_t addr, uint32_t size);
-extern void thread_free(void);
+extern void thread_clean_up(void);
 
 void kernel_init(uint32_t heap_addr, uint32_t heap_size)
 {
@@ -54,10 +55,10 @@ void kernel_start(void)
 void kernel_idle(void)
 {
 	m_idle_thread = thread_self();
-	thread_set_priority(m_idle_thread, THREAD_PRIORITY_IDLE - 1);
+	thread_set_priority(m_idle_thread, INT_MIN);
 	while(1)
 	{
-		thread_free();
+		thread_clean_up();
 		sched_idle();
 	}
 }
