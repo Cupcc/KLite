@@ -31,10 +31,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef void *thread_t;
-typedef void *mutex_t;
-typedef void *event_t;
-typedef void *sem_t;
+typedef struct{int a;} *thread_t;
+typedef struct{int a;} *mutex_t;
+typedef struct{int a;} *event_t;
+typedef struct{int a;} *sem_t;
 
 /******************************************************************************
 * kernel
