@@ -77,8 +77,10 @@ void thread_suspend(void)
 
 void thread_resume(thread_t thread)
 {
+	struct tcb *tcb;
+	tcb = (struct tcb *)thread;
 	sched_lock();
-	sched_tcb_resume(thread);
+	sched_tcb_resume(tcb);
 	sched_preempt(false);
 	sched_unlock();
 }
