@@ -28,7 +28,12 @@
 
 void cpu_sys_init(void)
 {
-
+	SystemCoreClockUpdate();
+	SysTick_Config(SystemCoreClock / 1000);
+	NVIC_SetPriority(PendSV_IRQn, 255);
+	NVIC_SetPriority(SysTick_IRQn, 255);
+	NVIC_EnableIRQ(PendSV_IRQn);
+	NVIC_EnableIRQ(SysTick_IRQn);
 }
 
 void cpu_sys_idle(uint32_t time)
@@ -36,7 +41,7 @@ void cpu_sys_idle(uint32_t time)
 
 }
 
-// void SysTick_Handler(void)
-// {
-//     kernel_tick(1);
-// }
+void SysTick_Handler(void)
+{
+	kernel_tick(1);
+}
