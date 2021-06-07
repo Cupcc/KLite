@@ -25,7 +25,7 @@
 * SOFTWARE.
 ******************************************************************************/
 #include "kernel.h"
-#include "hc32_ddl.h"
+#include "hc32_common.h"
 
 void cpu_sys_init(void)
 {
