@@ -24,95 +24,48 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#include "internal.h"
 #include "kernel.h"
+//#include "stm32f10x"
+#error "Include CMSIS based device header here!"
 
-struct event
-{
-	struct tcb_list list;
-	bool auto_reset;
-	bool state;
-};
+static uint32_t m_sys_nesting;
 
-event_t event_create(bool auto_reset)
+void cpu_sys_init(void)
 {
-	struct event *event;
-	event = heap_alloc(sizeof(struct event));
-	if(event != NULL)
-	{
-		memset(event, 0, sizeof(struct event));
-		event->auto_reset = auto_reset;
-	}
-	return (event_t)event;
+	m_sys_nesting = 0;
+	NVIC_SetPriority(PendSV_IRQn, 255);
+	NVIC_SetPriority(SysTick_IRQn, 255);
 }
 
-void event_delete(event_t event)
+void cpu_sys_start(void)
 {
-	heap_free(event);
+	SystemCoreClockUpdate();
+	SysTick_Config(SystemCoreClock / 1000);
 }
 
-void event_set(event_t event)
+void cpu_sys_sleep(uint32_t time)
 {
-	sched_lock();
-	event->state = true;
-	if(event->auto_reset)
-	{
-		if(sched_tcb_wake_from(&event->list))
-		{
-			event->state = false;
-		}
-	}
-	else
-	{
-		while(sched_tcb_wake_from(&event->list));
-	}
-	sched_preempt(false);
-	sched_unlock();
+	// Call wfi() can enter low power mode
+	// But SysTick may be stopped after call wfi() on some device.
+	//__wfi();
 }
 
-void event_reset(event_t event)
+void cpu_sys_enter_critical(void)
 {
-	sched_lock();
-	event->state = false;
-	sched_unlock();
+	__disable_irq();
+	m_sys_nesting++;
 }
 
-void event_wait(event_t event)
+void cpu_sys_leave_critical(void)
 {
-	sched_lock();
-	if(event->state)
+	m_sys_nesting--;
+	if(m_sys_nesting == 0)
 	{
-		if(event->auto_reset)
-		{
-			event->state = false;
-		}
-		sched_unlock();
-		return;
+		__enable_irq();
 	}
-	sched_tcb_wait(sched_tcb_now, &event->list);
-	sched_switch();
-	sched_unlock();
 }
 
-uint32_t event_timed_wait(event_t event, uint32_t timeout)
+void SysTick_Handler(void)
 {
-	sched_lock();
-	if(event->state)
-	{
-		if(event->auto_reset)
-		{
-			event->state = false;
-		}
-		sched_unlock();
-		return true;
-	}
-	if(timeout == 0)
-	{
-		sched_unlock();
-		return false;
-	}
-	sched_tcb_timed_wait(sched_tcb_now, &event->list, timeout);
-	sched_switch();
-	sched_unlock();
-	return sched_tcb_now->timeout;
+	kernel_tick(1);
 }

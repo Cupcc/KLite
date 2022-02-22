@@ -27,92 +27,65 @@
 #include "internal.h"
 #include "kernel.h"
 
-struct event
+struct cond
 {
 	struct tcb_list list;
-	bool auto_reset;
-	bool state;
 };
 
-event_t event_create(bool auto_reset)
+cond_t cond_create(void)
 {
-	struct event *event;
-	event = heap_alloc(sizeof(struct event));
-	if(event != NULL)
+	struct cond *cond;
+	cond = heap_alloc(sizeof(struct cond));
+	if(cond != NULL)
 	{
-		memset(event, 0, sizeof(struct event));
-		event->auto_reset = auto_reset;
+		memset(cond, 0, sizeof(struct cond));
 	}
-	return (event_t)event;
+	return (cond_t)cond;
 }
 
-void event_delete(event_t event)
+void cond_delete(cond_t cond)
 {
-	heap_free(event);
+	heap_free(cond);
 }
 
-void event_set(event_t event)
+void cond_signal(cond_t cond)
 {
 	sched_lock();
-	event->state = true;
-	if(event->auto_reset)
-	{
-		if(sched_tcb_wake_from(&event->list))
-		{
-			event->state = false;
-		}
-	}
-	else
-	{
-		while(sched_tcb_wake_from(&event->list));
-	}
+	sched_tcb_wake_from((struct tcb_list *)cond);
 	sched_preempt(false);
 	sched_unlock();
 }
 
-void event_reset(event_t event)
+void cond_broadcast(cond_t cond)
 {
 	sched_lock();
-	event->state = false;
+	while(sched_tcb_wake_from((struct tcb_list *)cond));
+	sched_preempt(false);
 	sched_unlock();
 }
 
-void event_wait(event_t event)
+void cond_wait(cond_t cond, mutex_t mutex)
 {
 	sched_lock();
-	if(event->state)
-	{
-		if(event->auto_reset)
-		{
-			event->state = false;
-		}
-		sched_unlock();
-		return;
-	}
-	sched_tcb_wait(sched_tcb_now, &event->list);
+	sched_tcb_wait(sched_tcb_now, (struct tcb_list *)cond);
+	mutex_unlock(mutex);
 	sched_switch();
 	sched_unlock();
+	mutex_lock(mutex);
 }
 
-uint32_t event_timed_wait(event_t event, uint32_t timeout)
+uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout)
 {
 	sched_lock();
-	if(event->state)
-	{
-		if(event->auto_reset)
-		{
-			event->state = false;
-		}
-		sched_unlock();
-		return true;
-	}
 	if(timeout == 0)
 	{
 		sched_unlock();
 		return false;
 	}
-	sched_tcb_timed_wait(sched_tcb_now, &event->list, timeout);
+	sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)cond, timeout);
+	mutex_unlock(mutex);
 	sched_switch();
 	sched_unlock();
+	mutex_lock(mutex);
 	return sched_tcb_now->timeout;
 }

@@ -24,95 +24,37 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#include "internal.h"
 #include "kernel.h"
 
-struct event
-{
-	struct tcb_list list;
-	bool auto_reset;
-	bool state;
-};
+#define NVIC_INT_CTRL (*((volatile uint32_t *)0xE000ED04))
+#define PEND_INT_SET  (1<<28)
 
-event_t event_create(bool auto_reset)
+void cpu_contex_switch(void)
 {
-	struct event *event;
-	event = heap_alloc(sizeof(struct event));
-	if(event != NULL)
-	{
-		memset(event, 0, sizeof(struct event));
-		event->auto_reset = auto_reset;
-	}
-	return (event_t)event;
+	NVIC_INT_CTRL = PEND_INT_SET;
 }
 
-void event_delete(event_t event)
+void *cpu_contex_init(void *stack, void *entry, void *arg, void *exit)
 {
-	heap_free(event);
+	uint32_t *sp;
+	sp = (uint32_t *)(((uint32_t)stack) & 0xFFFFFFF8);
+	*(--sp) = 0x01000000;               // xPSR
+	*(--sp) = (uint32_t)entry;          // PC
+	*(--sp) = (uint32_t)exit ;          // R14(LR)
+	*(--sp) = 0;                        // R12
+	*(--sp) = 0;                        // R3
+	*(--sp) = 0;                        // R2
+	*(--sp) = 0;                        // R1
+	*(--sp) = (uint32_t)arg;            // R0
+	
+	*(--sp) = 0;                        // R7
+	*(--sp) = 0;                        // R6
+	*(--sp) = 0;                        // R5
+	*(--sp) = 0;                        // R4
+	*(--sp) = 0;                        // R11
+	*(--sp) = 0;                        // R10
+	*(--sp) = 0;                        // R9
+	*(--sp) = 0;                        // R8
+	return sp;
 }
 
-void event_set(event_t event)
-{
-	sched_lock();
-	event->state = true;
-	if(event->auto_reset)
-	{
-		if(sched_tcb_wake_from(&event->list))
-		{
-			event->state = false;
-		}
-	}
-	else
-	{
-		while(sched_tcb_wake_from(&event->list));
-	}
-	sched_preempt(false);
-	sched_unlock();
-}
-
-void event_reset(event_t event)
-{
-	sched_lock();
-	event->state = false;
-	sched_unlock();
-}
-
-void event_wait(event_t event)
-{
-	sched_lock();
-	if(event->state)
-	{
-		if(event->auto_reset)
-		{
-			event->state = false;
-		}
-		sched_unlock();
-		return;
-	}
-	sched_tcb_wait(sched_tcb_now, &event->list);
-	sched_switch();
-	sched_unlock();
-}
-
-uint32_t event_timed_wait(event_t event, uint32_t timeout)
-{
-	sched_lock();
-	if(event->state)
-	{
-		if(event->auto_reset)
-		{
-			event->state = false;
-		}
-		sched_unlock();
-		return true;
-	}
-	if(timeout == 0)
-	{
-		sched_unlock();
-		return false;
-	}
-	sched_tcb_timed_wait(sched_tcb_now, &event->list, timeout);
-	sched_switch();
-	sched_unlock();
-	return sched_tcb_now->timeout;
-}

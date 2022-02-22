@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -12,10 +12,10 @@
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,139 +24,57 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
+#include "internal.h"
 #include "kernel.h"
-#include "sched.h"
 #include "list.h"
-#include "port.h"
 
 struct tcb             *sched_tcb_now;
-struct tcb             *sched_tcb_new;
+struct tcb             *sched_tcb_next;
+static struct tcb_list  m_list_ready[THREAD_PRIORITY_HIGHEST + 1];
 static struct tcb_list  m_list_sleep;
-static struct tcb_list  m_list_ready;
-static uint32_t         m_lock_count;
-static uint32_t         m_idle_time;
+static uint32_t         m_idle_timeout;
+static uint32_t         m_prio_highest;
 
-static void list_sorted_insert(struct tcb_list *list, struct tcb_node *node)
+static void list_insert_by_priority(struct tcb_list *list, struct tcb_node *node)
 {
+	uint32_t prio;
 	struct tcb_node *find;
-	if(node->tcb->prio > 0)
+	prio = node->tcb->prio;
+	for(find = list->tail; find != NULL; find = find->prev)
 	{
-		for(find = list->head; find != NULL; find = find->next)
+		if(find->tcb->prio >= prio)
 		{
-			if(find->tcb->prio < node->tcb->prio)
-			{
-				break;
-			}
+			break;
 		}
-		list_insert_before(list, find, node);
 	}
-	else
+	list_insert_after(list, find, node);
+}
+
+static uint32_t find_highest_priority(uint32_t highest)
+{
+	for(; highest > 0; highest--)
 	{
-		for(find = list->tail; find != NULL; find = find->prev)
+		if(m_list_ready[highest].head != NULL)
 		{
-			if(find->tcb->prio >= node->tcb->prio)
-			{
-				break;
-			}
+			break;
 		}
-		list_insert_after(list, find, node);
 	}
+	return highest;
 }
 
-void sched_tcb_sort(struct tcb *tcb)
+void sched_tcb_append(struct tcb *tcb)
 {
-	if(tcb->list_wait)
+	tcb->node_wait.tcb = tcb;
+	tcb->node_sched.tcb = tcb;
+	tcb->list_sched = &m_list_ready[tcb->prio];
+	list_append(tcb->list_sched, &tcb->node_sched);
+	if(tcb->prio > m_prio_highest)
 	{
-		list_remove(tcb->list_wait, &tcb->node_wait);
-		list_sorted_insert(tcb->list_wait, &tcb->node_wait);
-	}
-	if(tcb->list_sched)
-	{
-		list_remove(tcb->list_sched, &tcb->node_sched);
-		list_sorted_insert(tcb->list_sched, &tcb->node_sched);
+		m_prio_highest = tcb->prio;
 	}
 }
 
-void sched_tcb_init(struct tcb *tcb)
-{
-	tcb->time = 0;
-	tcb->timeout = 0;
-	tcb->state = TCB_STATE_READY;
-	tcb->list_wait = NULL;
-	tcb->list_sched = NULL;
-	cpu_tcb_init(tcb);
-}
-
-void sched_tcb_run(struct tcb *tcb)
-{
-	list_remove(tcb->list_sched, &tcb->node_sched);
-	tcb->list_sched = NULL;
-	tcb->state = TCB_STATE_RUNNING;
-	if(sched_tcb_now != tcb)
-	{
-		sched_tcb_new = tcb;
-		cpu_tcb_switch();
-	}
-}
-
-void sched_tcb_ready(struct tcb *tcb)
-{
-	tcb->state = TCB_STATE_READY;
-	tcb->list_sched = &m_list_ready;
-	list_sorted_insert(&m_list_ready, &tcb->node_sched);
-}
-
-void sched_tcb_sleep(struct tcb *tcb, uint32_t timeout)
-{
-	tcb->state = TCB_STATE_SLEEP;
-	tcb->timeout = timeout;
-	tcb->list_sched = &m_list_sleep;
-	list_append(&m_list_sleep, &tcb->node_sched);
-	m_idle_time = (m_idle_time < timeout) ? m_idle_time : timeout;
-}
-
-void sched_tcb_suspend(struct tcb *tcb)
-{
-	tcb->state = TCB_STATE_SUSPEND;
-	if(tcb->list_wait)
-	{
-		list_remove(tcb->list_wait, &tcb->node_wait);
-	}
-	if(tcb->list_sched)
-	{
-		list_remove(tcb->list_sched, &tcb->node_sched);
-	}
-}
-
-void sched_tcb_resume(struct tcb *tcb)
-{
-	if(tcb->state == TCB_STATE_SUSPEND)
-	{
-		tcb->state = TCB_STATE_READY;
-		tcb->list_sched = &m_list_ready;
-		list_sorted_insert(&m_list_ready, &tcb->node_sched);
-	}
-}
-
-void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list)
-{
-	tcb->state = TCB_STATE_WAIT;
-	tcb->list_wait = list;
-	list_sorted_insert(list, &tcb->node_wait);
-}
-
-void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list, uint32_t timeout)
-{
-	tcb->state = TCB_STATE_TIMEDWAIT;
-	tcb->timeout = timeout;
-	tcb->list_wait = list;
-	tcb->list_sched = &m_list_sleep;
-	list_sorted_insert(list, &tcb->node_wait);
-	list_append(&m_list_sleep, &tcb->node_sched);
-	m_idle_time = (m_idle_time < timeout) ? m_idle_time : timeout;
-}
-
-void sched_tcb_wake(struct tcb *tcb)
+void sched_tcb_remove(struct tcb *tcb)
 {
 	if(tcb->list_wait)
 	{
@@ -168,33 +86,125 @@ void sched_tcb_wake(struct tcb *tcb)
 		list_remove(tcb->list_sched, &tcb->node_sched);
 		tcb->list_sched = NULL;
 	}
-	tcb->state = TCB_STATE_READY;
-	tcb->list_sched = &m_list_ready;
-	list_sorted_insert(&m_list_ready, &tcb->node_sched);
+	if(tcb->prio == m_prio_highest)
+	{
+		m_prio_highest = find_highest_priority(tcb->prio);
+	}
 }
 
-struct tcb * sched_tcb_wake_one(struct tcb_list *list)
+void sched_tcb_sort(struct tcb *tcb)
+{
+	if(tcb->list_wait)
+	{
+		list_remove(tcb->list_wait, &tcb->node_wait);
+		list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
+	}
+	if(tcb->list_sched)
+	{
+		if(tcb->list_sched != &m_list_sleep)
+		{
+			list_remove(tcb->list_sched, &tcb->node_sched);
+			tcb->list_sched = &m_list_ready[tcb->prio];
+			list_append(tcb->list_sched, &tcb->node_sched);
+			m_prio_highest = find_highest_priority(THREAD_PRIORITY_HIGHEST);
+		}
+	}
+}
+
+void sched_tcb_ready(struct tcb *tcb)
+{
+	tcb->list_sched = &m_list_ready[tcb->prio];
+	list_append(tcb->list_sched, &tcb->node_sched);
+	if(tcb->prio > m_prio_highest)
+	{
+		m_prio_highest = tcb->prio;
+	}
+}
+
+void sched_tcb_sleep(struct tcb *tcb, uint32_t timeout)
+{
+	tcb->timeout = timeout;
+	tcb->list_sched = &m_list_sleep;
+	list_append(tcb->list_sched, &tcb->node_sched);
+	if(timeout < m_idle_timeout)
+	{
+		m_idle_timeout = timeout;
+	}
+}
+
+void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list)
+{
+	tcb->list_wait = list;
+	list_insert_by_priority(list, &tcb->node_wait);
+}
+
+void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list, uint32_t timeout)
+{
+	sched_tcb_wait(tcb, list);
+	sched_tcb_sleep(tcb, timeout);
+}
+
+static void sched_tcb_wake_up(struct tcb *tcb)
+{
+	if(tcb->list_wait)
+	{
+		list_remove(tcb->list_wait, &tcb->node_wait);
+		tcb->list_wait = NULL;
+	}
+	if(tcb->list_sched)
+	{
+		list_remove(tcb->list_sched, &tcb->node_sched);
+	}
+	sched_tcb_ready(tcb);
+}
+
+struct tcb *sched_tcb_wake_from(struct tcb_list *list)
 {
 	struct tcb *tcb;
 	if(list->head)
 	{
 		tcb = list->head->tcb;
-		sched_tcb_wake(tcb);
+		sched_tcb_wake_up(tcb);
 		return tcb;
 	}
 	return NULL;
 }
 
-void sched_tick(uint32_t time)
+void sched_switch(void)
+{
+	struct tcb *tcb;
+	tcb = m_list_ready[m_prio_highest].head->tcb;
+	list_remove(tcb->list_sched, &tcb->node_sched);
+	tcb->list_sched = NULL;
+	m_prio_highest = find_highest_priority(m_prio_highest);
+	sched_tcb_next = tcb;
+	cpu_contex_switch();
+}
+
+void sched_preempt(bool round_robin)
+{
+	if(sched_tcb_now != sched_tcb_next) /* The last switch incomplete */
+	{
+		return;
+	}
+	if(m_prio_highest == 0) /* The idle threads can't preempt */
+	{
+		return;
+	}
+	if((m_prio_highest + round_robin) > sched_tcb_now->prio)
+	{
+		sched_tcb_ready(sched_tcb_now);
+		sched_switch();
+	}
+}
+
+void sched_timing(uint32_t time)
 {
 	struct tcb *tcb;
 	struct tcb_node *node;
 	struct tcb_node *next;
-	if(sched_tcb_now != NULL)
-	{
-		sched_tcb_now->time += time;
-	}
-	m_idle_time = -1U;
+	sched_tcb_now->time += time;
+	m_idle_timeout = UINT32_MAX;
 	for(node = m_list_sleep.head; node != NULL; node = next)
 	{
 		next = node->next;
@@ -202,71 +212,38 @@ void sched_tick(uint32_t time)
 		if(tcb->timeout > time)
 		{
 			tcb->timeout -= time;
-			m_idle_time = (m_idle_time < tcb->timeout) ? m_idle_time : tcb->timeout;
+			if(tcb->timeout < m_idle_timeout)
+			{
+				m_idle_timeout = tcb->timeout;
+			}
 		}
 		else
 		{
 			tcb->timeout = 0;
-			sched_tcb_wake(tcb);
+			sched_tcb_wake_up(tcb);
 		}
-	}
-}
-
-void sched_preempt(bool round_robin)
-{
-	struct tcb *tcb;
-	if(sched_tcb_now == NULL)
-	{
-		return;
-	}
-	if(sched_tcb_now->state != TCB_STATE_RUNNING)
-	{
-		return;
-	}
-	if(m_list_ready.head == NULL)
-	{
-		return;
-	}
-	tcb = m_list_ready.head->tcb;
-	if((tcb->prio + round_robin) > sched_tcb_now->prio)
-	{
-		sched_tcb_ready(sched_tcb_now);
-		sched_tcb_run(tcb);
-	}
-}
-
-void sched_switch(void)
-{
-	sched_tcb_run(m_list_ready.head->tcb);
-}
-
-void sched_lock(void)
-{
-	cpu_irq_disable();
-	m_lock_count++;
-}
-
-void sched_unlock(void)
-{
-	m_lock_count--;
-	if(m_lock_count == 0)
-	{
-		cpu_irq_enable();
 	}
 }
 
 void sched_idle(void)
 {
-	cpu_sys_idle(m_idle_time);
+	if(m_list_ready[0].head != NULL) /* Another idle thread ready */
+	{
+		sched_tcb_ready(sched_tcb_now);
+		sched_switch();
+	}
+	else
+	{
+		cpu_sys_sleep(m_idle_timeout);
+	}
 }
 
 void sched_init(void)
 {
+	m_prio_highest = 0;
+	m_idle_timeout = UINT32_MAX;
 	sched_tcb_now = NULL;
-	sched_tcb_new = NULL;
-	m_lock_count = 0;
-	m_idle_time = -1U;
-	list_init(&m_list_ready);
-	list_init(&m_list_sleep);
-	cpu_sys_init();
+	sched_tcb_next = sched_tcb_now - 1; /* Mark the last switch incomplete */
+	memset(m_list_ready, 0, sizeof(m_list_ready));
+	memset(&m_list_sleep, 0, sizeof(m_list_sleep));
 }

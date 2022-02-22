@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -12,10 +12,10 @@
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,50 +31,73 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct{int a;} *thread_t;
-typedef struct{int a;} *mutex_t;
-typedef struct{int a;} *event_t;
-typedef struct{int a;} *sem_t;
+typedef struct tcb   *thread_t;
+typedef struct sem   *sem_t;
+typedef struct event *event_t;
+typedef struct mutex *mutex_t;
+typedef struct cond  *cond_t;
 
 /******************************************************************************
 * kernel
 ******************************************************************************/
-void     kernel_init(uint32_t heap_addr, uint32_t heap_size);
+void     kernel_init(void *heap_addr, uint32_t heap_size);
 void     kernel_start(void);
 void     kernel_idle(void);
-uint32_t kernel_idle_time(void);
-uint32_t kernel_time(void);
 void     kernel_tick(uint32_t time);
 uint32_t kernel_version(void);
+uint32_t kernel_time(void);
+uint32_t kernel_idle_time(void);
 
 /******************************************************************************
 * heap
 ******************************************************************************/
-void*    heap_alloc(uint32_t size);
+void    *heap_alloc(uint32_t size);
 void     heap_free(void *mem);
-void     heap_usage(uint32_t *total, uint32_t *used);
+void     heap_usage(uint32_t *used, uint32_t *free);
 
 /******************************************************************************
 * thread
 ******************************************************************************/
-#define  THREAD_PRIORITY_REALTIME  (+3)
-#define  THREAD_PRIORITY_HIGHEST   (+2)
-#define  THREAD_PRIORITY_HIGH      (+1)
-#define  THREAD_PRIORITY_NORMAL    (0)
-#define  THREAD_PRIORITY_LOW       (-1)
-#define  THREAD_PRIORITY_LOWEST    (-2)
-#define  THREAD_PRIORITY_IDLE      (-3)
+#define  THREAD_PRIORITY_HIGHEST   7
+#define  THREAD_PRIORITY_HIGHER    6
+#define  THREAD_PRIORITY_HIGH      5
+#define  THREAD_PRIORITY_NORMAL    4
+#define  THREAD_PRIORITY_LOW       3
+#define  THREAD_PRIORITY_LOWER     2
+#define  THREAD_PRIORITY_LOWEST    1
+#define  THREAD_PRIORITY_IDLE      0
 
 thread_t thread_create(void (*entry)(void*), void *arg, uint32_t stack_size);
 void     thread_delete(thread_t thread);
 void     thread_suspend(void);
 void     thread_resume(thread_t thread);
+void     thread_yield(void);
 void     thread_sleep(uint32_t time);
 void     thread_exit(void);
 thread_t thread_self(void);
 uint32_t thread_time(thread_t thread);
-void     thread_set_priority(thread_t thread, int prio);
-int      thread_get_priority(thread_t thread);
+void     thread_set_priority(thread_t thread, uint32_t prio);
+uint32_t thread_get_priority(thread_t thread);
+
+/******************************************************************************
+* semaphore
+******************************************************************************/
+sem_t    sem_create(uint32_t value);
+void     sem_delete(sem_t sem);
+void     sem_post(sem_t sem);
+void     sem_wait(sem_t sem);
+uint32_t sem_timed_wait(sem_t sem, uint32_t timeout);
+uint32_t sem_value(sem_t sem);
+
+/******************************************************************************
+* event
+******************************************************************************/
+event_t  event_create(bool auto_reset);
+void     event_delete(event_t event);
+void     event_set(event_t event);
+void     event_reset(event_t event);
+void     event_wait(event_t event);
+uint32_t event_timed_wait(event_t event, uint32_t timeout);
 
 /******************************************************************************
 * mutex
@@ -86,32 +109,21 @@ void     mutex_unlock(mutex_t mutex);
 bool     mutex_try_lock(mutex_t mutex);
 
 /******************************************************************************
-* semaphore
+* condition variable
 ******************************************************************************/
-sem_t    sem_create(uint32_t init_value, uint32_t max_value);
-void     sem_delete(sem_t sem);
-bool     sem_post(sem_t sem);
-void     sem_wait(sem_t sem);
-bool     sem_timed_wait(sem_t sem, uint32_t timeout);
-void     sem_get_value(sem_t sem, uint32_t *value);
-
-/******************************************************************************
-* event
-******************************************************************************/
-event_t  event_create(bool auto_reset);
-void     event_delete(event_t event);
-void     event_set(event_t event);
-void     event_reset(event_t event);
-void     event_pulse(event_t event);
-void     event_wait(event_t event);
-bool     event_timed_wait(event_t event, uint32_t timeout);
+cond_t   cond_create(void);
+void     cond_delete(cond_t cond);
+void     cond_signal(cond_t cond);
+void     cond_broadcast(cond_t cond);
+void     cond_wait(cond_t cond, mutex_t mutex);
+uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout);
 
 /******************************************************************************
 * alias
 ******************************************************************************/
-#define  malloc  heap_alloc
-#define  free    heap_free
-#define  sleep   thread_sleep
-#define  clock   kernel_time
+#define  malloc(s)  heap_alloc(s)
+#define  free(p)    heap_free(p)
+#define  sleep(x)   thread_sleep(x)
+#define  clock()    kernel_time()
 
 #endif
