@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2021 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -12,10 +12,10 @@
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,29 +24,25 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
+#include "internal.h"
 #include "kernel.h"
-#include "sched.h"
 
-struct semaphore
+struct sem
 {
-	struct tcb_node *head;
-	struct tcb_node *tail;
-	uint32_t cur_value;
-	uint32_t max_value;
+	struct tcb_list list;
+	uint32_t value;
 };
 
-sem_t sem_create(uint32_t init_value, uint32_t max_value)
+sem_t sem_create(uint32_t value)
 {
-	struct semaphore *p_sem;
-	p_sem = heap_alloc(sizeof(struct semaphore));
-	if(p_sem != NULL)
+	struct sem *sem;
+	sem = heap_alloc(sizeof(struct sem));
+	if(sem != NULL)
 	{
-		p_sem->head = NULL;
-		p_sem->tail = NULL;
-		p_sem->cur_value = init_value;
-		p_sem->max_value = max_value;
+		memset(sem, 0, sizeof(struct sem));
+		sem->value = value;
 	}
-	return (sem_t)p_sem;
+	return (sem_t)sem;
 }
 
 void sem_delete(sem_t sem)
@@ -54,51 +50,39 @@ void sem_delete(sem_t sem)
 	heap_free(sem);
 }
 
-bool sem_post(sem_t sem)
+void sem_post(sem_t sem)
 {
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
 	sched_lock();
-	if(sched_tcb_wake_one((struct tcb_list *)p_sem))
+	if(sched_tcb_wake_from(&sem->list))
 	{
 		sched_preempt(false);
 		sched_unlock();
-		return true;
+		return;
 	}
-	if(p_sem->cur_value < p_sem->max_value)
-	{
-		p_sem->cur_value++;
-		sched_unlock();
-		return true;
-	}
+	sem->value++;
 	sched_unlock();
-	return false;
 }
 
 void sem_wait(sem_t sem)
 {
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
 	sched_lock();
-	if(p_sem->cur_value > 0)
+	if(sem->value > 0)
 	{
-		p_sem->cur_value--;
+		sem->value--;
 		sched_unlock();
 		return;
 	}
-	sched_tcb_wait(sched_tcb_now, (struct tcb_list *)p_sem);
+	sched_tcb_wait(sched_tcb_now, &sem->list);
 	sched_switch();
 	sched_unlock();
 }
 
-bool sem_timed_wait(sem_t sem, uint32_t timeout)
+uint32_t sem_timed_wait(sem_t sem, uint32_t timeout)
 {
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
 	sched_lock();
-	if(p_sem->cur_value > 0)
+	if(sem->value > 0)
 	{
-		p_sem->cur_value--;
+		sem->value--;
 		sched_unlock();
 		return true;
 	}
@@ -107,17 +91,13 @@ bool sem_timed_wait(sem_t sem, uint32_t timeout)
 		sched_unlock();
 		return false;
 	}
-	sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)p_sem, timeout);
+	sched_tcb_timed_wait(sched_tcb_now, &sem->list, timeout);
 	sched_switch();
 	sched_unlock();
-	return (sched_tcb_now->timeout != 0);
+	return sched_tcb_now->timeout;
 }
 
-void sem_get_value(sem_t sem, uint32_t *value)
+uint32_t sem_value(sem_t sem)
 {
-	struct semaphore *p_sem;
-	p_sem = (struct semaphore *)sem;
-	sched_lock();
-	*value = p_sem->cur_value;
-	sched_unlock();
+	return sem->value;
 }
