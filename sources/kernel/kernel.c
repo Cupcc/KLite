@@ -44,9 +44,7 @@ void kernel_init(void *heap_addr, uint32_t heap_size)
 
 void kernel_start(void)
 {
-	sched_lock();
 	sched_switch();
-	sched_unlock();
 	cpu_sys_start();
 }
 

@@ -25,30 +25,10 @@
 * SOFTWARE.
 ******************************************************************************/
 #include "kernel.h"
-//#include "stm32f10x"
 #error "Include CMSIS based device header here!"
+//#include "stm32f0xx.h"
 
 static uint32_t m_sys_nesting;
-
-void cpu_sys_init(void)
-{
-	m_sys_nesting = 0;
-	NVIC_SetPriority(PendSV_IRQn, 255);
-	NVIC_SetPriority(SysTick_IRQn, 255);
-}
-
-void cpu_sys_start(void)
-{
-	SystemCoreClockUpdate();
-	SysTick_Config(SystemCoreClock / 1000);
-}
-
-void cpu_sys_sleep(uint32_t time)
-{
-	// Call wfi() can enter low power mode
-	// But SysTick may be stopped after call wfi() on some device.
-	//__wfi();
-}
 
 void cpu_sys_enter_critical(void)
 {
@@ -63,6 +43,27 @@ void cpu_sys_leave_critical(void)
 	{
 		__enable_irq();
 	}
+}
+
+void cpu_sys_init(void)
+{
+	cpu_sys_enter_critical();
+	NVIC_SetPriority(PendSV_IRQn, 255);
+	NVIC_SetPriority(SysTick_IRQn, 255);
+}
+
+void cpu_sys_start(void)
+{
+	SystemCoreClockUpdate();
+	SysTick_Config(SystemCoreClock / 1000);
+	cpu_sys_leave_critical();
+}
+
+void cpu_sys_sleep(uint32_t time)
+{
+	// Call wfi() can enter low power mode
+	// But SysTick may be stopped after call wfi() on some device.
+	//__wfi();
 }
 
 void SysTick_Handler(void)
