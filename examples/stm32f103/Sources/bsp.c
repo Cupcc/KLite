@@ -3,17 +3,17 @@
 
 void bsp_init(void)
 {
-	RCC->APB2ENR |= 1 << 2;
-	GPIOA->CRH &= 0xFFFFFF00;
-	GPIOA->CRH |= 0x0000033;
+	RCC->APB2ENR |= 1 << 4;
+	GPIOC->CRH &= 0xFFFFFF00;
+	GPIOC->CRH |= 0x00000033;
 }
 
 void bsp_led_on(int num)
 {
-	GPIOA->BSRR |= 1 << (num);
+	GPIOC->ODR |= 1 << (num + 8);
 }
 
 void bsp_led_off(int num)
 {
-	GPIOA->BRR &= ~(1 << (num));
+	GPIOC->ODR &= ~(1 << (num + 8));
 }
