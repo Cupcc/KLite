@@ -32,6 +32,11 @@
 #include <stdbool.h>
 #include <string.h>
 
+/* Compatible with armcc5 armcc6 gcc icc */
+#if defined ( __GNUC__ ) || (__ARMCC_VERSION >= 6100100)
+#define __weak __attribute__((weak))
+#endif
+
 struct tcb_list
 {
 	struct tcb_node *head;
@@ -64,6 +69,14 @@ extern struct tcb *sched_tcb_next;
 #define sched_lock()   cpu_sys_enter_critical()
 #define sched_unlock() cpu_sys_leave_critical()
 
+void  cpu_sys_init(void);
+void  cpu_sys_start(void);
+void  cpu_sys_sleep(uint32_t time);
+void  cpu_sys_enter_critical(void);
+void  cpu_sys_leave_critical(void);
+void  cpu_contex_switch(void);
+void *cpu_contex_init(void *stack, void *entry, void *arg, void *exit);
+
 void sched_init(void);
 void sched_idle(void);
 void sched_timing(uint32_t time);
@@ -78,15 +91,7 @@ void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list);
 void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list, uint32_t timeout);
 struct tcb *sched_tcb_wake_from(struct tcb_list *list);
 
-void  cpu_sys_init(void);
-void  cpu_sys_start(void);
-void  cpu_sys_sleep(uint32_t time);
-void  cpu_sys_enter_critical(void);
-void  cpu_sys_leave_critical(void);
-void  cpu_contex_switch(void);
-void *cpu_contex_init(void *stack, void *entry, void *arg, void *exit);
-
 void heap_init(void *addr, uint32_t size);
-void heap_overflow(void);
+void heap_fault(void);
 
 #endif
