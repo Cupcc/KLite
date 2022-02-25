@@ -12,11 +12,6 @@ static void idle(void *arg)
 	kernel_idle();
 }
 
-void heap_overflow(void)
-{
-	while(1);
-}
-
 int main(void)
 {
 	bsp_init();

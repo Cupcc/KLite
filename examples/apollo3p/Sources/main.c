@@ -12,11 +12,6 @@ static void idle(void *arg)
 	kernel_idle();
 }
 
-void heap_overflow(void)
-{
-	while(1);
-}
-
 int main(void)
 {
     static uint8_t heap[64*1024];
