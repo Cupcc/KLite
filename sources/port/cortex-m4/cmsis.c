@@ -26,6 +26,7 @@
 ******************************************************************************/
 #include "kernel.h"
 #error "Include CMSIS based device header here!"
+//#include "apollo3p.h"
 //#include "stm32f4xx.h"
 
 static uint32_t m_sys_nesting;
