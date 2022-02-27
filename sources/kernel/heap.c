@@ -109,7 +109,7 @@ static void heap_mutex_unlock(struct heap_contex *heap)
 	sched_unlock();
 }
 
-__weak void heap_fault(void)
+__weak void heap_fault(uint32_t size)
 {
 
 }
@@ -152,7 +152,7 @@ void *heap_alloc(uint32_t size)
 		}
 	}
 	heap_mutex_unlock(&m_heap);
-	heap_fault();
+	heap_fault(size);
 	return NULL;
 }
 
