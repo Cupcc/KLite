@@ -110,9 +110,11 @@ ________________________________________________________________________________
 	返回：无  
 	描述：此函数不是API接口，它应该由CPU的滴答时钟中断程序调用  
 	> 此函数为系统提供时钟源，我们在这里把滴答时间转为毫秒单位，
-	应用层就不必每次都使用宏定义来进行单位转换，可以起到简化接口调用的目的。
-	但是如果目标CPU的定时器不能产生1ms的时钟，比如RTC=32728HZ，只能产生1024Hz的中源，滴答周期为0.97ms,
-	如果能接受误差，可以不处理；或者每16个中断跳过1次滴答调用，进行修正。
+	应用层就不必每次都使用宏定义来进行单位转换，可以起到简化接口调用的目的。  
+	如果硬件定时器不能产生1ms的时钟，比如RTC=32768Hz，只能产生1024Hz的中断源，周期为0.97ms，这就很尴尬！  
+	方案一：软件修正误差，在1024个周期内，均匀地跳过24次中断。  
+	方案二：设置中断周期为125ms，这是在32768Hz时钟下能得到的最小整数时间。  
+	方案三：放弃毫秒为时间单位，老老实实用滴答数做为时间单位。
 
 ### 3.2 内存管理
 
@@ -124,7 +126,7 @@ ________________________________________________________________________________
 	> 严格来说调用此函数应该检查返回值是否为`NULL`，
 	但每次`heap_alloc`都要写检查返回值的代码可能有点繁琐或者容易有遗漏的地方，
 	所以此函数在返回`NULL`之前会调用一个HOOK函数，原型`void heap_fault(void);`
-	对于嵌入式系统来说申请内存失败是严重错误，所以我们可以偷下懒只需要在`heap_fault()`函数中统一处理错误就够了。
+	对于嵌入式系统来说申请内存失败是严重错误，所以我们可以偷懒只在`heap_fault()`函数中统一处理错误。
 
 ________________________________________________________________________________
 + void heap_free(void *mem);  
@@ -242,24 +244,24 @@ ________________________________________________________________________________
 	返回：无  
 	描述：将`mutex`指定的互斥锁标记为锁定状态，如果`mutex`已被其它线程锁定，则调用线程将会被阻塞，直到另一个线程释放这个互斥锁  
 	> 参考：  
-	> C11标准：https://cloud.tencent.com/developer/section/1009716  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_lock.html  
+	> C11：https://cloud.tencent.com/developer/section/1009716  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_lock.html  
 ________________________________________________________________________________
 +	bool mutex_try_lock(mutex_t mutex)  
 	参数：`mutex` 互斥锁标识符  
 	返回：如果锁定成功则返回`true`，失败则返回`false`  
 	描述：此函数是`mutex_lock`的非阻塞版本  
 	> 参考：  
-	> C11标准：https://cloud.tencent.com/developer/section/1009721  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_trylock.html  
+	> C11：https://cloud.tencent.com/developer/section/1009721  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_trylock.html  
 ________________________________________________________________________________
 + void mutex_unlock(mutex_t mutex)  
 	参数：`mutex` 互斥锁标识符  
 	返回：无  
 	描述：释放`mutex`标识的互斥锁，如果有其它线程正在等待这个锁，则会唤醒优先级最高的那个线程  
 	> 参考：  
-	> C11标准：https://cloud.tencent.com/developer/section/1009722  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_unlock.html  
+	> C11：https://cloud.tencent.com/developer/section/1009722  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_unlock.html  
 
 ### 3.5 信号量
 ________________________________________________________________________________
@@ -268,7 +270,8 @@ ________________________________________________________________________________
 	返回：成功返回信号量标识符，失败返回`NULL`  
 	描述：创建信号量对象  
 	> 参考：  
-	>https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_init.html
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_init.html
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createsemaphorea
 ________________________________________________________________________________
 + void sem_delete(sem_t sem)  
 	参数：`sem` 信号量标识符  
@@ -280,16 +283,16 @@ ________________________________________________________________________________
 	返回：无  
 	描述：信号量计数值加1，如果有线程在等待信号量，此函数会唤醒优先级最高的线程  
 	> 参考：  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_post.html  
-	> windows标准：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-releasesemaphore  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_post.html  
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-releasesemaphore  
 ________________________________________________________________________________
 + void sem_wait(sem_t sem)  
 	参数：`sem` 信号量标识符  
 	返回：无  
 	描述：等待信号量，信号量计数值减1，如果当前信号量计数值为0，则线程阻塞，直到计数值大于0  
 	> 参考：  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_wait.html  
-	> windows标准：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_wait.html  
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject  
 ________________________________________________________________________________
 + uint32_t sem_timed_wait(sem_t sem, uint32_t timeout)  
 	参数：`sem` 信号量标识符  
@@ -297,15 +300,15 @@ ________________________________________________________________________________
 	返回：剩余等待时间，如果返回0则说明等待超时  
 	描述：定时等待信号量，并将信号量计数值减1，如果当前信号量计数值为0，则线程阻塞，直到计数值大于0，或者阻塞时间超过`timeout`指定的时间
 	> 参考：  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_timedwait.html  
-	> windows标准：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_timedwait.html  
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject  
 ________________________________________________________________________________
 + uint32_t sem_value(sem_t sem)  
 	参数：`sem` 信号量标识符  
 	返回：信号量计数值  
 	描述：返回信号量计数值  
 	> 参考：  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_getvalue.html  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/sem_getvalue.html  
 	
 ### 3.6 条件变量
 ________________________________________________________________________________
@@ -324,16 +327,16 @@ ________________________________________________________________________________
 	返回：无  
 	描述：唤醒一个被条件变量阻塞的线程，如果没有线程被阻塞则此函数什么也不做  
 	> 参考：  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_signal.html  
-	> c11标准：https://cloud.tencent.com/developer/section/1009711  
+	> C11：https://cloud.tencent.com/developer/section/1009711  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_signal.html  
 ________________________________________________________________________________
 + void cond_broadcast(cond_t cond);  
 	参数：`cond` 条件变量标识符  
 	返回：无  
 	描述：唤醒全部被条件变量阻塞的线程，如果没有线程被阻塞则此函数什么也不做   
 	> 参考：  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_broadcast.html  
-	> c11标准：https://cloud.tencent.com/developer/section/1009708  
+	> C11：https://cloud.tencent.com/developer/section/1009708  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_broadcast.html  
 ________________________________________________________________________________
 + void cond_wait(cond_t cond, mutex_t mutex);  
 	参数：`cond` 条件变量标识符  
@@ -341,8 +344,8 @@ ________________________________________________________________________________
 	返回：无  
 	描述：阻塞线程，并等待被条件变量唤醒  
 	> 参考：  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_wait.html  
-	> c11标准：https://cloud.tencent.com/developer/section/1009713  
+	> C11：https://cloud.tencent.com/developer/section/1009713  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_wait.html  
 ________________________________________________________________________________
 + uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout);  
 	参数：`cond` 条件变量标识符  
@@ -351,8 +354,8 @@ ________________________________________________________________________________
 	返回：剩余等待时间，如果返回0则说明等待超时  
 	功能：定时阻塞线程，并等待被条件变量唤醒  
 	> 参考：  
-	> posix标准：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_timedwait.html  
-	> c11标准：https://cloud.tencent.com/developer/section/1009712  
+	> C11：https://cloud.tencent.com/developer/section/1009712  
+	> POSIX：https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_timedwait.html  
 
 ### 3.7 事件
 ________________________________________________________________________________
@@ -361,7 +364,7 @@ ________________________________________________________________________________
 	返回：创建成功返回事件标识符，失败返回`NULL`  
 	描述：创建一个事件对象，当`auto_reset`为`true`时事件会在传递成功后自动复位  
 	> 参考：  
-	> windows标准：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventa  
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventa  
 ________________________________________________________________________________
 + void event_delete(event_t event);  
 	参数：`event` 事件标识符  
@@ -374,21 +377,21 @@ ________________________________________________________________________________
 	描述：标记事件为置位状态，并唤醒等待队列中的线程，如果`auto_reset`为`true`，那么只唤醒第1个线程，并且将事件复位，
 	如果`auto_reset`为`false`，那么会唤醒所有线程，事件保持置位状态  
 	> 参考：  
-	> windows标准：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent  
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent  
 ________________________________________________________________________________
 + void event_reset(event_t event);  
 	参数：`event` 事件标识符  
 	返回：无  
 	描述：标记事件为复位状态，此函数不会唤醒任何线程  
 	> 参考：  
-	> windows标准：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent  
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent  
 ________________________________________________________________________________
 + void event_wait(event_t event);  
 	参数：`event` 事件标识符  
 	返回：无  
 	描述：等待事件被置位  
 	> 参考：  
-	> windows标准：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject  
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject  
 ________________________________________________________________________________
 + uint32_t event_timed_wait(event_t event， uint32_t timeout);  
 	参数：`event` 事件标识符  
@@ -396,7 +399,7 @@ ________________________________________________________________________________
 	返回：剩余等待时间，如果返回0则说明等待超时  
 	描述：定时等待事件置位，如果等待时间超过`timeout`设定的时间则退出等待  
 	> 参考：  
-	> windows标准：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject  
+	> WIN32：https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject  
 
 ## 四、可选功能
 
@@ -405,21 +408,38 @@ ________________________________________________________________________________
 
 ### 4.1 事件组
 
+头文件: #include "event_group.h"
+
+
 ### 4.2 软定时器
+
+头文件: #include "soft_timer.h"
 
 ### 4.3 消息队列
 
+头文件: #include "msg_queue.h"
+
 ### 4.4 块队列
+
+头文件: #include "blk_queue.h"
 
 ### 4.5 块内存池
 
+头文件: #include "mem_pool.h"
+
 ### 4.6 字节流缓冲区
+
+头文件: #include "byte_stream.h"
 
 ## 五、其它函数
 
 ### 5.1 通用链表
 
+头文件: #include "list.h"
+
 ### 5.2 通用FIFO
+
+头文件: #include "fifo.h"
 
 ## 六、 硬件移植
 
@@ -439,7 +459,7 @@ ________________________________________________________________________________
 ________________________________________________________________________________
 + void cpu_sys_sleep(uint32_t time);  
 	描述：实现低功耗的接口，操作系统休眠时调用  
-	参数：time  可休眠的最长时间，单位毫秒  
+	参数：`time`  可休眠的最长时间，单位毫秒  
 	返回：无  
 ________________________________________________________________________________
 + void cpu_sys_enter_critical(void);  
