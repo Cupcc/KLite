@@ -76,7 +76,7 @@ void cpu_sys_sleep(uint32_t time)
 void RTC1_IRQHandler(void)
 {
 	NRF_RTC1->EVENTS_TICK = 0;
-	kernel_tick(1); 
+	kernel_tick(1);
 }
 
 // Plan B: 43tick = 41.9921875ms
@@ -84,7 +84,7 @@ void RTC1_IRQHandler(void)
 {
 	static int fix43;
 	NRF_RTC1->EVENTS_TICK = 0;
-	if(++fix43 == 43)  
+	if(++fix43 == 43)
 	{
 		fix43 = 0;
 		return;
