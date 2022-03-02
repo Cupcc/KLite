@@ -69,11 +69,13 @@ static bool soft_timer_init(void)
 static uint32_t soft_timer_process(uint32_t time)
 {
 	struct soft_timer *node;
+	struct soft_timer *next;
 	uint32_t timeout;
 	timeout = UINT32_MAX;
 	mutex_lock(m_timer_list->mutex);
-	for(node = m_timer_list->head; node != NULL; node = node->next)
+	for(node = m_timer_list->head; node != NULL; node = next)
 	{
+		next = node->next;
 		if(node->timeout > time)
 		{
 			node->timeout -= time;
@@ -140,9 +142,12 @@ void soft_timer_delete(soft_timer_t timer)
 void soft_timer_start(soft_timer_t timer, uint32_t timeout)
 {
 	mutex_lock(m_timer_list->mutex);
-	timer->reload  = (timeout != 0) ? timeout : 1; /* timeout can't be 0 */
-	timer->timeout = timer->reload;
-	list_append(m_timer_list, timer);
+	if(timer->reload == 0)
+	{
+		timer->reload  = (timeout != 0) ? timeout : 1; /* timeout can't be 0 */
+		timer->timeout = timer->reload;
+		list_append(m_timer_list, timer);
+	}
 	mutex_unlock(m_timer_list->mutex);
 	event_set(m_timer_list->event);
 }
