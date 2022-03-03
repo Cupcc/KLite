@@ -25,6 +25,6 @@ static void demo_thread2(void *arg)
 
 void app_init(void)
 {
-	thread_create(demo_thread1, NULL, 256);
-	thread_create(demo_thread2, NULL, 256);
+	thread_create(demo_thread1, NULL, 512);
+	thread_create(demo_thread2, NULL, 512);
 }
