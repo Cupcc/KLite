@@ -55,7 +55,7 @@ void cpu_sys_init(void)
 void cpu_sys_start(void)
 {
 	NRF_RTC1->POWER = 1;
-	NRF_RTC1->PRESCALER = 31; // 32768 / (31 + 1) = 1024Hz
+	NRF_RTC1->PRESCALER = 63; // 32768 / (33 + 1) = 512Hz
 	NRF_RTC1->INTENSET = 0x01;
 	NRF_RTC1->EVTEN = 0x01;
 	NRF_RTC1->TASKS_START = 1;
@@ -65,30 +65,12 @@ void cpu_sys_start(void)
 
 void cpu_sys_sleep(uint32_t time)
 {
-	// Call wfi() can enter low power mode
-	// But SysTick may be stopped after call wfi() on some device.
-	//__wfi();
+	__wfi();
 }
 
-/* Please select a plan blow */
-
-// Plan A: 1tick = 0.9765625ms
+// FIXME: 2 tick = 1.953125ms
 void RTC1_IRQHandler(void)
 {
 	NRF_RTC1->EVENTS_TICK = 0;
-	kernel_tick(1);
+	kernel_tick(2);
 }
-
-// Plan B: 43tick = 41.9921875ms
-void RTC1_IRQHandler(void)
-{
-	static int fix43;
-	NRF_RTC1->EVENTS_TICK = 0;
-	if(++fix43 == 43)
-	{
-		fix43 = 0;
-		return;
-	}
-	kernel_tick(1);
-}
-
