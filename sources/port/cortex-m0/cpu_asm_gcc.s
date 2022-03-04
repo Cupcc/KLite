@@ -31,19 +31,7 @@
 .extern sched_tcb_now
 .extern sched_tcb_new
 
-.global cpu_irq_enable
-.global cpu_irq_disable
 .global PendSV_Handler
-	
-.thumb_func
-cpu_irq_enable:
-	CPSIE   I
-	BX      LR
-
-.thumb_func
-cpu_irq_disable:
-	CPSID   I
-	BX      LR
 
 .thumb_func
 PendSV_Handler:
