@@ -52,48 +52,48 @@ void sem_delete(sem_t sem)
 
 void sem_post(sem_t sem)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(sched_tcb_wake_from(&sem->list))
 	{
 		sched_preempt(false);
-		sched_unlock();
+		cpu_leave_critical();
 		return;
 	}
 	sem->value++;
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 void sem_wait(sem_t sem)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(sem->value > 0)
 	{
 		sem->value--;
-		sched_unlock();
+		cpu_leave_critical();
 		return;
 	}
 	sched_tcb_wait(sched_tcb_now, &sem->list);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 uint32_t sem_timed_wait(sem_t sem, uint32_t timeout)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(sem->value > 0)
 	{
 		sem->value--;
-		sched_unlock();
+		cpu_leave_critical();
 		return true;
 	}
 	if(timeout == 0)
 	{
-		sched_unlock();
+		cpu_leave_critical();
 		return false;
 	}
 	sched_tcb_timed_wait(sched_tcb_now, &sem->list, timeout);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 	return sched_tcb_now->timeout;
 }
 

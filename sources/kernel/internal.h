@@ -66,32 +66,25 @@ struct tcb
 extern struct tcb *sched_tcb_now;
 extern struct tcb *sched_tcb_next;
 
-#define sched_lock()   cpu_sys_enter_critical()
-#define sched_unlock() cpu_sys_leave_critical()
-
 void  cpu_sys_init(void);
 void  cpu_sys_start(void);
 void  cpu_sys_sleep(uint32_t time);
-void  cpu_sys_enter_critical(void);
-void  cpu_sys_leave_critical(void);
 void  cpu_contex_switch(void);
 void *cpu_contex_init(void *stack, void *entry, void *arg, void *exit);
+void  cpu_enter_critical(void);
+void  cpu_leave_critical(void);
 
 void sched_init(void);
 void sched_idle(void);
 void sched_timing(uint32_t time);
 void sched_switch(void);
 void sched_preempt(bool round_robin);
-void sched_tcb_append(struct tcb *tcb);
+void sched_tcb_reset(struct tcb *tcb, uint32_t prio);
 void sched_tcb_remove(struct tcb *tcb);
-void sched_tcb_sort(struct tcb *tcb);
 void sched_tcb_ready(struct tcb *tcb);
 void sched_tcb_sleep(struct tcb *tcb, uint32_t timeout);
 void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list);
 void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list, uint32_t timeout);
 struct tcb *sched_tcb_wake_from(struct tcb_list *list);
-
-void heap_init(void *addr, uint32_t size);
-void heap_fault(void);
 
 #endif

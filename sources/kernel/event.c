@@ -53,7 +53,7 @@ void event_delete(event_t event)
 
 void event_set(event_t event)
 {
-	sched_lock();
+	cpu_enter_critical();
 	event->state = true;
 	if(event->auto_reset)
 	{
@@ -67,52 +67,52 @@ void event_set(event_t event)
 		while(sched_tcb_wake_from(&event->list));
 	}
 	sched_preempt(false);
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 void event_reset(event_t event)
 {
-	sched_lock();
+	cpu_enter_critical();
 	event->state = false;
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 void event_wait(event_t event)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(event->state)
 	{
 		if(event->auto_reset)
 		{
 			event->state = false;
 		}
-		sched_unlock();
+		cpu_leave_critical();
 		return;
 	}
 	sched_tcb_wait(sched_tcb_now, &event->list);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 uint32_t event_timed_wait(event_t event, uint32_t timeout)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(event->state)
 	{
 		if(event->auto_reset)
 		{
 			event->state = false;
 		}
-		sched_unlock();
+		cpu_leave_critical();
 		return true;
 	}
 	if(timeout == 0)
 	{
-		sched_unlock();
+		cpu_leave_critical();
 		return false;
 	}
 	sched_tcb_timed_wait(sched_tcb_now, &event->list, timeout);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 	return sched_tcb_now->timeout;
 }

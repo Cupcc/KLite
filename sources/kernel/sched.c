@@ -34,6 +34,7 @@ static struct tcb_list  m_list_ready[THREAD_PRIORITY_HIGHEST + 1];
 static struct tcb_list  m_list_sleep;
 static uint32_t         m_idle_timeout;
 static uint32_t         m_prio_highest;
+static uint32_t         m_prio_bitmap;
 
 static void list_insert_by_priority(struct tcb_list *list, struct tcb_node *node)
 {
@@ -54,24 +55,12 @@ static uint32_t find_highest_priority(uint32_t highest)
 {
 	for(; highest > 0; highest--)
 	{
-		if(m_list_ready[highest].head != NULL)
+		if(m_prio_bitmap & (1 << highest))
 		{
 			break;
 		}
 	}
 	return highest;
-}
-
-void sched_tcb_append(struct tcb *tcb)
-{
-	tcb->node_wait.tcb = tcb;
-	tcb->node_sched.tcb = tcb;
-	tcb->list_sched = &m_list_ready[tcb->prio];
-	list_append(tcb->list_sched, &tcb->node_sched);
-	if(tcb->prio > m_prio_highest)
-	{
-		m_prio_highest = tcb->prio;
-	}
 }
 
 void sched_tcb_remove(struct tcb *tcb)
@@ -84,29 +73,44 @@ void sched_tcb_remove(struct tcb *tcb)
 	if(tcb->list_sched)
 	{
 		list_remove(tcb->list_sched, &tcb->node_sched);
+		if(tcb->list_sched != &m_list_sleep) /* in ready list ? */
+		{
+			if(tcb->list_sched->head == NULL)
+			{
+				m_prio_bitmap &= ~(1 << tcb->prio);
+				m_prio_highest = find_highest_priority(m_prio_highest);
+			}
+		}
 		tcb->list_sched = NULL;
-	}
-	if(tcb->prio == m_prio_highest)
-	{
-		m_prio_highest = find_highest_priority(tcb->prio);
 	}
 }
 
-void sched_tcb_sort(struct tcb *tcb)
+void sched_tcb_reset(struct tcb *tcb, uint32_t prio)
 {
 	if(tcb->list_wait)
 	{
 		list_remove(tcb->list_wait, &tcb->node_wait);
 		list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
 	}
+	
 	if(tcb->list_sched)
 	{
-		if(tcb->list_sched != &m_list_sleep)
+		if(tcb->list_sched != &m_list_sleep) /* in ready list ? */
 		{
+			/* remove from old list */
 			list_remove(tcb->list_sched, &tcb->node_sched);
-			tcb->list_sched = &m_list_ready[tcb->prio];
+			if(tcb->list_sched->head == NULL)
+			{
+				m_prio_bitmap &= ~(1 << tcb->prio);
+			}
+			/* append to new list */
+			tcb->list_sched = &m_list_ready[prio];
 			list_append(tcb->list_sched, &tcb->node_sched);
-			m_prio_highest = find_highest_priority(THREAD_PRIORITY_HIGHEST);
+			m_prio_bitmap |= (1 << prio);
+			if(m_prio_highest < prio)
+			{
+				m_prio_highest = prio;
+			}
 		}
 	}
 }
@@ -115,7 +119,8 @@ void sched_tcb_ready(struct tcb *tcb)
 {
 	tcb->list_sched = &m_list_ready[tcb->prio];
 	list_append(tcb->list_sched, &tcb->node_sched);
-	if(tcb->prio > m_prio_highest)
+	m_prio_bitmap |= (1 << tcb->prio);
+	if(m_prio_highest < tcb->prio)
 	{
 		m_prio_highest = tcb->prio;
 	}
@@ -175,19 +180,23 @@ void sched_switch(void)
 	struct tcb *tcb;
 	tcb = m_list_ready[m_prio_highest].head->tcb;
 	list_remove(tcb->list_sched, &tcb->node_sched);
+	if(tcb->list_sched->head == NULL)
+	{
+		m_prio_bitmap &= ~(1 << tcb->prio);
+		m_prio_highest = find_highest_priority(m_prio_highest);
+	}
 	tcb->list_sched = NULL;
-	m_prio_highest = find_highest_priority(m_prio_highest);
 	sched_tcb_next = tcb;
 	cpu_contex_switch();
 }
 
 void sched_preempt(bool round_robin)
 {
-	if(sched_tcb_now != sched_tcb_next) /* The last switch incomplete */
+	if(m_prio_bitmap == 0) /* ready list empty */
 	{
 		return;
 	}
-	if(m_prio_highest == 0) /* The idle threads can't preempt */
+	if(sched_tcb_now != sched_tcb_next) /* last switch was not completed */
 	{
 		return;
 	}
@@ -198,20 +207,19 @@ void sched_preempt(bool round_robin)
 	}
 }
 
-void sched_timing(uint32_t time)
+static void sched_timeout(uint32_t elapse)
 {
 	struct tcb *tcb;
 	struct tcb_node *node;
 	struct tcb_node *next;
-	sched_tcb_now->time += time;
 	m_idle_timeout = UINT32_MAX;
 	for(node = m_list_sleep.head; node != NULL; node = next)
 	{
 		next = node->next;
 		tcb = node->tcb;
-		if(tcb->timeout > time)
+		if(tcb->timeout > elapse)
 		{
-			tcb->timeout -= time;
+			tcb->timeout -= elapse;
 			if(tcb->timeout < m_idle_timeout)
 			{
 				m_idle_timeout = tcb->timeout;
@@ -225,9 +233,21 @@ void sched_timing(uint32_t time)
 	}
 }
 
+void sched_timing(uint32_t time)
+{
+	static uint32_t elapse;
+	elapse += time;
+	sched_tcb_now->time += time;
+	if(elapse >= m_idle_timeout)
+	{
+		sched_timeout(elapse);
+		elapse = 0;
+	}
+}
+
 void sched_idle(void)
 {
-	if(m_list_ready[0].head != NULL) /* Another idle thread ready */
+	if(m_prio_bitmap != 0)
 	{
 		sched_tcb_ready(sched_tcb_now);
 		sched_switch();
@@ -240,10 +260,11 @@ void sched_idle(void)
 
 void sched_init(void)
 {
-	m_prio_highest = 0;
 	m_idle_timeout = UINT32_MAX;
+	m_prio_highest = 0;
+	m_prio_bitmap = 0;
 	sched_tcb_now = NULL;
-	sched_tcb_next = sched_tcb_now - 1; /* Mark the last switch incomplete */
+	sched_tcb_next = sched_tcb_now - 1; /* mark the last switch was not completed */
 	memset(m_list_ready, 0, sizeof(m_list_ready));
 	memset(&m_list_sleep, 0, sizeof(m_list_sleep));
 }

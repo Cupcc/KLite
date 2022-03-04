@@ -46,51 +46,37 @@ thread_t thread_create(void (*entry)(void*), void *arg, uint32_t stack_size)
 		tcb->prio  = THREAD_PRIORITY_NORMAL;
 		tcb->stack = cpu_contex_init((uint8_t *)(tcb + 1) + stack_size, entry, arg, thread_exit);
 		tcb->entry = entry;
-		sched_lock();
-		sched_tcb_append(tcb);
-		sched_unlock();
+		tcb->node_wait.tcb = tcb;
+		tcb->node_sched.tcb = tcb;
+		cpu_enter_critical();
+		sched_tcb_ready(tcb);
+		cpu_leave_critical();
 	}
 	return (thread_t)tcb;
 }
 
 void thread_delete(thread_t thread)
 {
-	sched_lock();
+	cpu_enter_critical();
 	sched_tcb_remove(thread);
-	sched_unlock();
+	cpu_leave_critical();
 	heap_free(thread);
-}
-
-void thread_suspend(void)
-{
-	sched_lock();
-	sched_tcb_remove(sched_tcb_now);
-	sched_switch();
-	sched_unlock();
-}
-
-void thread_resume(thread_t thread)
-{
-	sched_lock();
-	sched_tcb_ready(thread);
-	sched_preempt(false);
-	sched_unlock();
 }
 
 void thread_yield(void)
 {
-	sched_lock();
+	cpu_enter_critical();
 	sched_switch();
 	sched_tcb_ready(sched_tcb_now);
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 void thread_sleep(uint32_t time)
 {
-	sched_lock();
+	cpu_enter_critical();
 	sched_tcb_sleep(sched_tcb_now, time);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 uint32_t thread_time(thread_t thread)
@@ -100,11 +86,11 @@ uint32_t thread_time(thread_t thread)
 
 void thread_set_priority(thread_t thread, uint32_t prio)
 {
-	sched_lock();
+	cpu_enter_critical();
+	sched_tcb_reset(thread, prio);
 	thread->prio = prio;
-	sched_tcb_sort(thread);
 	sched_preempt(false);
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 uint32_t thread_get_priority(thread_t thread)
@@ -114,11 +100,11 @@ uint32_t thread_get_priority(thread_t thread)
 
 void thread_exit(void)
 {
-	sched_lock();
+	cpu_enter_critical();
 	sched_tcb_remove(sched_tcb_now);
 	list_append(&m_list_dead, &sched_tcb_now->node_wait);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 void thread_clean_up(void)
@@ -126,10 +112,10 @@ void thread_clean_up(void)
 	struct tcb_node *node;
 	while(m_list_dead.head)
 	{
+		cpu_enter_critical();
 		node = m_list_dead.head;
-		sched_lock();
 		list_remove(&m_list_dead, node);
-		sched_unlock();
+		cpu_leave_critical();
 		heap_free(node->tcb);
 	}
 }

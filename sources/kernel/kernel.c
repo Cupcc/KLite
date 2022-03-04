@@ -30,12 +30,13 @@
 #define MAKE_VERSION_CODE(a,b,c)    ((a<<24)|(b<<16)|(c))
 #define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(5,0,0)
 
-static uint32_t m_time_now;
+static uint32_t m_tick_count;
 static thread_t m_idle_thread;
 
 void kernel_init(void *heap_addr, uint32_t heap_size)
 {
-	m_time_now = 0;
+	void heap_init(void *addr, uint32_t size);
+	m_tick_count = 0;
 	m_idle_thread = NULL;
 	cpu_sys_init();
 	sched_init();
@@ -56,32 +57,32 @@ void kernel_idle(void)
 	while(1)
 	{
 		thread_clean_up();
-		sched_lock();
+		cpu_enter_critical();
 		sched_idle();
-		sched_unlock();
+		cpu_leave_critical();
 	}
 }
 
 void kernel_tick(uint32_t time)
 {
-	m_time_now += time;
-	sched_lock();
+	m_tick_count += time;
+	cpu_enter_critical();
 	sched_timing(time);
 	sched_preempt(true);
-	sched_unlock();
+	cpu_leave_critical();
+}
+
+uint32_t kernel_tick_count(void)
+{
+	return m_tick_count;
+}
+
+uint32_t kernel_tick_idle(void)
+{
+	return m_idle_thread ? thread_time(m_idle_thread) : 0;
 }
 
 uint32_t kernel_version(void)
 {
 	return KERNEL_VERSION_CODE;
-}
-
-uint32_t kernel_time(void)
-{
-	return m_time_now;
-}
-
-uint32_t kernel_idle_time(void)
-{
-	return m_idle_thread ? thread_time(m_idle_thread) : 0;
 }

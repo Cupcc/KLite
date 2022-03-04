@@ -103,13 +103,13 @@ bool soft_timer_service(void)
 	{
 		return false;
 	}
-	last = kernel_time();
+	last = kernel_tick_count();
 	while(1)
 	{
-		time = kernel_time() - last;
-		last = kernel_time();
+		time = kernel_tick_count() - last;
+		last = kernel_tick_count();
 		timeout = soft_timer_process(time);
-		time = kernel_time() - last;
+		time = kernel_tick_count() - last;
 		if(timeout > time)
 		{
 			event_timed_wait(m_timer_list->event, timeout - time);
