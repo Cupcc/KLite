@@ -44,9 +44,9 @@ void     kernel_init(void *heap_addr, uint32_t heap_size);
 void     kernel_start(void);
 void     kernel_idle(void);
 void     kernel_tick(uint32_t time);
+uint32_t kernel_tick_count(void);
+uint32_t kernel_tick_idle(void);
 uint32_t kernel_version(void);
-uint32_t kernel_time(void);
-uint32_t kernel_idle_time(void);
 
 /******************************************************************************
 * heap
@@ -69,8 +69,6 @@ void     heap_usage(uint32_t *used, uint32_t *free);
 
 thread_t thread_create(void (*entry)(void*), void *arg, uint32_t stack_size);
 void     thread_delete(thread_t thread);
-void     thread_suspend(void);
-void     thread_resume(thread_t thread);
 void     thread_yield(void);
 void     thread_sleep(uint32_t time);
 void     thread_exit(void);

@@ -81,7 +81,7 @@ void cpu_sys_sleep(uint32_t time)
 
 }
 
-void cpu_sys_enter_critical(void)
+void cpu_enter_critical(void)
 {
 	uint32_t cpsr;
 	cpsr = arm_read_cpsr_c();
@@ -92,7 +92,7 @@ void cpu_sys_enter_critical(void)
 	}
 }
 
-void cpu_sys_leave_critical(void)
+void cpu_leave_critical(void)
 {
 	if(--m_lock_nesting == 0)
 	{

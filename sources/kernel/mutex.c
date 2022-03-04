@@ -52,49 +52,49 @@ void mutex_delete(mutex_t mutex)
 
 bool mutex_try_lock(mutex_t mutex)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(mutex->owner == NULL)
 	{
 		mutex->lock++;
 		mutex->owner = sched_tcb_now;
-		sched_unlock();
+		cpu_leave_critical();
 		return true;
 	}
 	if(mutex->owner == sched_tcb_now)
 	{
 		mutex->lock++;
-		sched_unlock();
+		cpu_leave_critical();
 		return true;
 	}
-	sched_unlock();
+	cpu_leave_critical();
 	return false;
 }
 
 void mutex_lock(mutex_t mutex)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(mutex->owner == NULL)
 	{
 		mutex->lock++;
 		mutex->owner = sched_tcb_now;
-		sched_unlock();
+		cpu_leave_critical();
 		return;
 	}
 	if(mutex->owner == sched_tcb_now)
 	{
 		mutex->lock++;
-		sched_unlock();
+		cpu_leave_critical();
 		return;
 	}
 	sched_tcb_wait(sched_tcb_now, &mutex->list);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 	return;
 }
 
 void mutex_unlock(mutex_t mutex)
 {
-	sched_lock();
+	cpu_enter_critical();
 	mutex->lock--;
 	if(mutex->lock == 0)
 	{
@@ -105,5 +105,5 @@ void mutex_unlock(mutex_t mutex)
 			sched_preempt(false);
 		}
 	}
-	sched_unlock();
+	cpu_leave_critical();
 }

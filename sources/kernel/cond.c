@@ -50,42 +50,42 @@ void cond_delete(cond_t cond)
 
 void cond_signal(cond_t cond)
 {
-	sched_lock();
+	cpu_enter_critical();
 	sched_tcb_wake_from((struct tcb_list *)cond);
 	sched_preempt(false);
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 void cond_broadcast(cond_t cond)
 {
-	sched_lock();
+	cpu_enter_critical();
 	while(sched_tcb_wake_from((struct tcb_list *)cond));
 	sched_preempt(false);
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 void cond_wait(cond_t cond, mutex_t mutex)
 {
-	sched_lock();
+	cpu_enter_critical();
 	sched_tcb_wait(sched_tcb_now, (struct tcb_list *)cond);
 	mutex_unlock(mutex);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 	mutex_lock(mutex);
 }
 
 uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(timeout == 0)
 	{
-		sched_unlock();
+		cpu_leave_critical();
 		return false;
 	}
 	sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)cond, timeout);
 	mutex_unlock(mutex);
 	sched_switch();
-	sched_unlock();
+	cpu_leave_critical();
 	mutex_lock(mutex);
 	return sched_tcb_now->timeout;
 }

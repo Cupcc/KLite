@@ -82,7 +82,7 @@ static void heap_node_init(struct heap_contex *heap, uint32_t start, uint32_t en
 
 static void heap_mutex_lock(struct heap_contex *heap)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(heap->lock == 0)
 	{
 		heap->lock = 1;
@@ -92,12 +92,12 @@ static void heap_mutex_lock(struct heap_contex *heap)
 		sched_tcb_wait(sched_tcb_now, (struct tcb_list *)heap);
 		sched_switch();
 	}
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 static void heap_mutex_unlock(struct heap_contex *heap)
 {
-	sched_lock();
+	cpu_enter_critical();
 	if(sched_tcb_wake_from((struct tcb_list *)heap))
 	{
 		sched_preempt(false);
@@ -106,7 +106,7 @@ static void heap_mutex_unlock(struct heap_contex *heap)
 	{
 		heap->lock = 0;
 	}
-	sched_unlock();
+	cpu_leave_critical();
 }
 
 __weak void heap_fault(void)

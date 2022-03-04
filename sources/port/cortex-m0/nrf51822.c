@@ -29,13 +29,13 @@
 
 static uint32_t m_sys_nesting;
 
-void cpu_sys_enter_critical(void)
+void cpu_enter_critical(void)
 {
 	__disable_irq();
 	m_sys_nesting++;
 }
 
-void cpu_sys_leave_critical(void)
+void cpu_leave_critical(void)
 {
 	m_sys_nesting--;
 	if(m_sys_nesting == 0)
@@ -46,7 +46,7 @@ void cpu_sys_leave_critical(void)
 
 void cpu_sys_init(void)
 {
-	cpu_sys_enter_critical();
+	cpu_enter_critical();
 	NRF_CLOCK->TASKS_LFCLKSTART = 1;
 	NVIC_SetPriority(PendSV_IRQn, 255);
 	NVIC_SetPriority(RTC1_IRQn, 255);
@@ -60,7 +60,7 @@ void cpu_sys_start(void)
 	NRF_RTC1->EVTEN = 0x01;
 	NRF_RTC1->TASKS_START = 1;
 	NVIC_EnableIRQ(RTC1_IRQn);
-	cpu_sys_leave_critical();
+	cpu_leave_critical();
 }
 
 void cpu_sys_sleep(uint32_t time)
