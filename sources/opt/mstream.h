@@ -30,9 +30,9 @@
 typedef struct mstream *mstream_t;
 
 mstream_t mstream_create(uint32_t size);
-void      mstream_delete(mstream_t queue);
+void      mstream_delete(mstream_t stream);
 void      mstream_clear(mstream_t stream);
-uint32_t  mstream_write(mstream_t queue, void *buf, uint32_t len, uint32_t timeout);
-uint32_t  mstream_read(mstream_t queue, void *buf, uint32_t len, uint32_t timeout);
+uint32_t  mstream_write(mstream_t stream, void *buf, uint32_t len, uint32_t timeout);
+uint32_t  mstream_read(mstream_t stream, void *buf, uint32_t len, uint32_t timeout);
 
 #endif
