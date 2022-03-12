@@ -33,6 +33,6 @@ stimer_t stimer_create(void (*handler)(void *), void *arg);
 void     stimer_delete(stimer_t timer);
 void     stimer_start(stimer_t timer, uint32_t timeout);
 void     stimer_stop(stimer_t timer);
-bool     stimer_service(void);
+void     stimer_service(void);
 
 #endif
