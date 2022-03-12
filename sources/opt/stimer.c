@@ -27,38 +27,38 @@
 #include <string.h>
 #include "kernel.h"
 #include "list.h"
-#include "soft_timer.h"
+#include "stimer.h"
 
-struct soft_timer
+struct stimer
 {
-	struct soft_timer *prev;
-	struct soft_timer *next;
+	struct stimer *prev;
+	struct stimer *next;
 	void (*handler)(void *);
 	void  *arg;
 	uint32_t reload;
 	uint32_t timeout;
 };
 
-struct soft_timer_list
+struct stimer_list
 {
-	struct soft_timer *head;
-	struct soft_timer *tail;
+	struct stimer *head;
+	struct stimer *tail;
 	mutex_t mutex;
 	event_t event;
 };
 
-static struct soft_timer_list *m_timer_list;
+static struct stimer_list *m_timer_list = NULL;
 
-static bool soft_timer_init(void)
+static bool stimer_init(void)
 {
 	if(m_timer_list != NULL)
 	{
 		return true;
 	}
-	m_timer_list = heap_alloc(sizeof(struct soft_timer_list));
+	m_timer_list = heap_alloc(sizeof(struct stimer_list));
 	if(m_timer_list != NULL)
 	{
-		memset(m_timer_list, 0, sizeof(struct soft_timer_list));
+		memset(m_timer_list, 0, sizeof(struct stimer_list));
 		m_timer_list->mutex = mutex_create();
 		m_timer_list->event = event_create(true);
 		return m_timer_list->event != NULL;
@@ -66,16 +66,18 @@ static bool soft_timer_init(void)
 	return false;
 }
 
-static uint32_t soft_timer_process(uint32_t time)
+static uint32_t stimer_process(uint32_t time)
 {
-	struct soft_timer *node;
-	struct soft_timer *next;
+	struct stimer *node;
 	uint32_t timeout;
 	timeout = UINT32_MAX;
 	mutex_lock(m_timer_list->mutex);
-	for(node = m_timer_list->head; node != NULL; node = next)
+	for(node = m_timer_list->head; node != NULL; node = node->next)
 	{
-		next = node->next;
+		if(node->reload == 0)
+		{
+			continue;
+		}
 		if(node->timeout > time)
 		{
 			node->timeout -= time;
@@ -94,12 +96,12 @@ static uint32_t soft_timer_process(uint32_t time)
 	return timeout;
 }
 
-bool soft_timer_service(void)
+bool stimer_service(void)
 {
 	uint32_t last;
 	uint32_t time;
 	uint32_t timeout;
-	if(!soft_timer_init())
+	if(!stimer_init())
 	{
 		return false;
 	}
@@ -108,7 +110,7 @@ bool soft_timer_service(void)
 	{
 		time = kernel_tick_count() - last;
 		last = kernel_tick_count();
-		timeout = soft_timer_process(time);
+		timeout = stimer_process(time);
 		time = kernel_tick_count() - last;
 		if(timeout > time)
 		{
@@ -117,49 +119,47 @@ bool soft_timer_service(void)
 	}
 }
 
-soft_timer_t soft_timer_create(void (*handler)(void *), void *arg)
+stimer_t stimer_create(void (*handler)(void *), void *arg)
 {
-	struct soft_timer *timer;
-	if(!soft_timer_init())
+	struct stimer *timer;
+	if(!stimer_init())
 	{
 		return NULL;
 	}
-	timer = heap_alloc(sizeof(struct soft_timer));
+	timer = heap_alloc(sizeof(struct stimer));
 	if(timer != NULL)
 	{
-		memset(timer, 0, sizeof(struct soft_timer));
+		memset(timer, 0, sizeof(struct stimer));
 		timer->handler = handler;
 		timer->arg = arg;
+		mutex_lock(m_timer_list->mutex);
+		list_append(m_timer_list, timer);
+		mutex_unlock(m_timer_list->mutex);
 	}
 	return timer;
 }
 
-void soft_timer_delete(soft_timer_t timer)
+void stimer_delete(stimer_t timer)
 {
+	mutex_lock(m_timer_list->mutex);
+	list_remove(m_timer_list, timer);
+	mutex_unlock(m_timer_list->mutex);
 	heap_free(timer);
 }
 
-void soft_timer_start(soft_timer_t timer, uint32_t timeout)
+void stimer_start(stimer_t timer, uint32_t timeout)
 {
 	mutex_lock(m_timer_list->mutex);
-	if(timer->reload == 0)
-	{
-		timer->reload  = (timeout != 0) ? timeout : 1; /* timeout can't be 0 */
-		timer->timeout = timer->reload;
-		list_append(m_timer_list, timer);
-	}
+	timer->reload  = (timeout > 0) ? timeout : 1; /* timeout can't be 0 */
+	timer->timeout = timer->reload;
 	mutex_unlock(m_timer_list->mutex);
 	event_set(m_timer_list->event);
 }
 
-void soft_timer_stop(soft_timer_t timer)
+void stimer_stop(stimer_t timer)
 {
 	mutex_lock(m_timer_list->mutex);
-	if(timer->reload != 0) /* check if timer started */
-	{
-		list_remove(m_timer_list, timer);
-		timer->reload = 0;
-		event_set(m_timer_list->event);
-	}
+	timer->reload = 0;
 	mutex_unlock(m_timer_list->mutex);
+	event_set(m_timer_list->event);
 }

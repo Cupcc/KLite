@@ -24,14 +24,14 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#ifndef __MEM_POOL_H
-#define __MEM_POOL_H
+#ifndef __MPOOL_H
+#define __MPOOL_H
 
-typedef struct mem_pool *mem_pool_t;
+typedef struct mpool *mpool_t;
 
-mem_pool_t mem_pool_create(uint32_t item_size, uint32_t item_count);
-void       mem_pool_delete(mem_pool_t pool);
-void      *mem_pool_alloc(mem_pool_t pool);
-void       mem_pool_free(mem_pool_t pool, void *item);
+mpool_t mpool_create(uint32_t mem_size, uint32_t mem_count);
+void    mpool_delete(mpool_t mpool);
+void   *mpool_alloc(mpool_t mpool);
+void    mpool_free(mpool_t mpool, void *mem);
 
 #endif

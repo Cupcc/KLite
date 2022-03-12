@@ -26,9 +26,9 @@
 ******************************************************************************/
 #include <string.h>
 #include "kernel.h"
-#include "mem_pool.h"
+#include "mpool.h"
 
-struct mem_pool
+struct mpool
 {
 	mutex_t   mutex;
 	uint32_t *item_addr;
@@ -38,65 +38,65 @@ struct mem_pool
 	uint32_t  next_free;
 };
 
-mem_pool_t mem_pool_create(uint32_t item_size, uint32_t item_count)
+mpool_t mpool_create(uint32_t item_size, uint32_t item_count)
 {
 	uint32_t i;
 	uint32_t item;
-	mem_pool_t mem_pool;
-	mem_pool = heap_alloc((item_size + item_count * sizeof(void *)) + sizeof(struct mem_pool));
-	if(mem_pool != NULL)
+	mpool_t mpool;
+	mpool = heap_alloc((item_size + item_count * sizeof(void *)) + sizeof(struct mpool));
+	if(mpool != NULL)
 	{
-		memset(mem_pool, 0, sizeof(sizeof(struct mem_pool)));
-		mem_pool->mutex = mutex_create();
-		if(mem_pool->mutex != NULL)
+		memset(mpool, 0, sizeof(sizeof(struct mpool)));
+		mpool->mutex = mutex_create();
+		if(mpool->mutex != NULL)
 		{
-			mem_pool->item_addr = (uint32_t *)(mem_pool + 1);
-			mem_pool->item_count = item_count;
-			item = (uint32_t)(mem_pool->item_addr + item_count);
+			mpool->item_addr = (uint32_t *)(mpool + 1);
+			mpool->item_count = item_count;
+			item = (uint32_t)(mpool->item_addr + item_count);
 			for(i = 0; i < item_count; i++)
 			{
-				mem_pool_free(mem_pool, (void *)item);
+				mpool_free(mpool, (void *)item);
 				item += item_size;
 			}
-			return mem_pool;
+			return mpool;
 		}
-		heap_free(mem_pool);
+		heap_free(mpool);
 	}
 	return NULL;
 }
 
-void mem_pool_delete(mem_pool_t mem_pool)
+void mpool_delete(mpool_t mpool)
 {
-	mutex_delete(mem_pool->mutex);
-	heap_free(mem_pool);
+	mutex_delete(mpool->mutex);
+	heap_free(mpool);
 }
 
-void *mem_pool_alloc(mem_pool_t mem_pool)
+void *mpool_alloc(mpool_t mpool)
 {
 	uint32_t item = 0;
-	mutex_lock(mem_pool->mutex);
-	if(mem_pool->item_free > 0)
+	mutex_lock(mpool->mutex);
+	if(mpool->item_free > 0)
 	{
-		item = mem_pool->item_addr[mem_pool->next_alloc];
-		if(++mem_pool->next_alloc >= mem_pool->item_count)
+		item = mpool->item_addr[mpool->next_alloc];
+		if(++mpool->next_alloc >= mpool->item_count)
 		{
-			mem_pool->next_alloc = 0;
+			mpool->next_alloc = 0;
 		}
-		mem_pool->item_free--;
+		mpool->item_free--;
 	}
-	mutex_unlock(mem_pool->mutex);
+	mutex_unlock(mpool->mutex);
 	return (void *)item;
 }
 
-void mem_pool_free(mem_pool_t mem_pool, void *mem)
+void mpool_free(mpool_t mpool, void *mem)
 {
 	uint32_t item = (uint32_t)mem;
-	mutex_lock(mem_pool->mutex);
-	mem_pool->item_addr[mem_pool->next_free] = item;
-	if(++mem_pool->next_free >= mem_pool->item_count)
+	mutex_lock(mpool->mutex);
+	mpool->item_addr[mpool->next_free] = item;
+	if(++mpool->next_free >= mpool->item_count)
 	{
-		mem_pool->next_free = 0;
+		mpool->next_free = 0;
 	}
-	mem_pool->item_free++;
-	mutex_unlock(mem_pool->mutex);
+	mpool->item_free++;
+	mutex_unlock(mpool->mutex);
 }

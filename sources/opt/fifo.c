@@ -27,19 +27,37 @@
 #include "kernel.h"
 #include "fifo.h"
 
-void fifo_init(fifo_t *fifo, void *buf, uint32_t buf_size)
+void fifo_init(fifo_t *fifo, void *buf, uint32_t size)
 {
-	fifo->buf = buf;
-	fifo->size = buf_size;
-	fifo->rp = 0;
-	fifo->wp = 0;
+	fifo->buf  = buf;
+	fifo->size = size;
+	fifo->rp   = 0;
+	fifo->wp   = 0;
 }
 
-uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t buf_size)
+uint32_t fifo_read(fifo_t *fifo, void *buf, uint32_t size)
+{
+	uint32_t i;
+	for(i = 0; i < size; i++)
+	{
+		if(fifo->rp == fifo->wp)
+		{
+			break;
+		}
+		((uint8_t *)buf)[i] = fifo->buf[fifo->rp++];
+		if(fifo->rp == fifo->size)
+		{
+			fifo->rp = 0;
+		}
+	}
+	return i;
+}
+
+uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t size)
 {
 	uint32_t i;
 	uint32_t pos;
-	for(i = 0; i < buf_size; i++)
+	for(i = 0; i < size; i++)
 	{
 		pos = fifo->wp + 1;
 		if(pos == fifo->size)
@@ -52,24 +70,6 @@ uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t buf_size)
 		}
 		fifo->buf[fifo->wp] = ((uint8_t *)buf)[i];
 		fifo->wp = pos;
-	}
-	return i;
-}
-
-uint32_t fifo_read(fifo_t *fifo, void *buf, uint32_t buf_size)
-{
-	uint32_t i;
-	for(i = 0; i < buf_size; i++)
-	{
-		if(fifo->rp == fifo->wp)
-		{
-			break;
-		}
-		((uint8_t *)buf)[i] = fifo->buf[fifo->rp++];
-		if(fifo->rp == fifo->size)
-		{
-			fifo->rp = 0;
-		}
 	}
 	return i;
 }

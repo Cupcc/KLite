@@ -27,26 +27,26 @@
 #include <string.h>
 #include "kernel.h"
 #include "fifo.h"
-#include "byte_stream.h"
+#include "bstream.h"
 
-struct byte_stream
+struct bstream
 {
-	fifo_t fifo;
+	fifo_t  fifo;
 	mutex_t mutex;
 	event_t empty;
 	event_t full;
 };
 
-byte_stream_t byte_stream_create(uint32_t size)
+bstream_t bstream_create(uint32_t size)
 {
-	struct byte_stream *stream;
-	stream = heap_alloc(sizeof(struct byte_stream) + size);
+	struct bstream *stream;
+	stream = heap_alloc(sizeof(struct bstream) + size);
 	if(stream != NULL)
 	{
 		fifo_init(&stream->fifo, stream + 1, size);
 		stream->mutex = mutex_create();
 		stream->empty = event_create(true);
-		stream->full = event_create(true);
+		stream->full  = event_create(true);
 		if(stream->full == NULL)
 		{
 			return NULL;
@@ -55,7 +55,7 @@ byte_stream_t byte_stream_create(uint32_t size)
 	return stream;
 }
 
-void byte_stream_delete(byte_stream_t stream)
+void bstream_delete(bstream_t stream)
 {
 	mutex_delete(stream->mutex);
 	event_delete(stream->empty);
@@ -63,7 +63,7 @@ void byte_stream_delete(byte_stream_t stream)
 	heap_free(stream);
 }
 
-void byte_stream_clear(byte_stream_t stream)
+void bstream_clear(bstream_t stream)
 {
 	mutex_lock(stream->mutex);
 	fifo_clear(&stream->fifo);
@@ -71,9 +71,10 @@ void byte_stream_clear(byte_stream_t stream)
 	event_set(stream->empty);
 }
 
-uint32_t byte_stream_write(byte_stream_t stream, uint8_t *buf, uint32_t len, uint32_t timeout)
+uint32_t bstream_write(bstream_t stream, void *buf, uint32_t len, uint32_t timeout)
 {
-	uint32_t ret;
+	uint8_t *ptr = (uint8_t *)buf;
+	uint32_t sum = 0;
 	uint32_t ttl;
 	while(1)
 	{
@@ -81,21 +82,22 @@ uint32_t byte_stream_write(byte_stream_t stream, uint8_t *buf, uint32_t len, uin
 		ttl = fifo_write(&stream->fifo, buf, len);
 		mutex_unlock(stream->mutex);
 		event_set(stream->full);
-		ret += ttl;
-		buf += ttl;
+		ptr += ttl;
+		sum += ttl;
 		len -= ttl;
 		if((timeout > 0) && (len > 0))
 		{
 			timeout = event_timed_wait(stream->empty, timeout);
 			continue;
 		}
-		return ret;
+		return sum;
 	}
 }
 
-uint32_t byte_stream_read(byte_stream_t stream, uint8_t *buf, uint32_t len, uint32_t timeout)
+uint32_t bstream_read(bstream_t stream, void *buf, uint32_t len, uint32_t timeout)
 {
-	uint32_t ret;
+	uint8_t *ptr = (uint8_t *)buf;
+	uint32_t sum = 0;
 	uint32_t ttl;
 	while(1)
 	{
@@ -103,14 +105,14 @@ uint32_t byte_stream_read(byte_stream_t stream, uint8_t *buf, uint32_t len, uint
 		ttl = fifo_read(&stream->fifo, buf, len);
 		mutex_unlock(stream->mutex);
 		event_set(stream->empty);
-		ret += ttl;
-		buf += ttl;
+		ptr += ttl;
+		sum += ttl;
 		len -= ttl;
 		if((timeout > 0) && (len > 0))
 		{
 			timeout = event_timed_wait(stream->full, timeout);
 			continue;
 		}
-		return ret;
+		return sum;
 	}
 }

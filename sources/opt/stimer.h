@@ -24,15 +24,15 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#ifndef __SOFT_TIMER_H
-#define __SOFT_TIMER_H
+#ifndef __STIMER_H
+#define __STIMER_H
 
-typedef struct soft_timer *soft_timer_t;
+typedef struct stimer *stimer_t;
 
-soft_timer_t soft_timer_create(void (*handler)(void *), void *arg);
-void         soft_timer_delete(soft_timer_t timer);
-void         soft_timer_start(soft_timer_t timer, uint32_t timeout);
-void         soft_timer_stop(soft_timer_t timer);
-bool         soft_timer_service(void);
+stimer_t stimer_create(void (*handler)(void *), void *arg);
+void     stimer_delete(stimer_t timer);
+void     stimer_start(stimer_t timer, uint32_t timeout);
+void     stimer_stop(stimer_t timer);
+bool     stimer_service(void);
 
 #endif
