@@ -2886,9 +2886,9 @@
           <GroupName>opt</GroupName>
           <Files>
             <File>
-              <FileName>soft_timer.c</FileName>
+              <FileName>stimer.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\sources\opt\soft_timer.c</FilePath>
+              <FilePath>..\..\sources\opt\stimer.c</FilePath>
             </File>
           </Files>
         </Group>
