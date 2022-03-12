@@ -96,25 +96,24 @@ static uint32_t stimer_process(uint32_t time)
 	return timeout;
 }
 
-bool stimer_service(void)
+void stimer_service(void)
 {
 	uint32_t last;
 	uint32_t time;
 	uint32_t timeout;
-	if(!stimer_init())
+	if(stimer_init())
 	{
-		return false;
-	}
-	last = kernel_tick_count();
-	while(1)
-	{
-		time = kernel_tick_count() - last;
 		last = kernel_tick_count();
-		timeout = stimer_process(time);
-		time = kernel_tick_count() - last;
-		if(timeout > time)
+		while(1)
 		{
-			event_timed_wait(m_timer_list->event, timeout - time);
+			time = kernel_tick_count() - last;
+			last = kernel_tick_count();
+			timeout = stimer_process(time);
+			time = kernel_tick_count() - last;
+			if(timeout > time)
+			{
+				event_timed_wait(m_timer_list->event, timeout - time);
+			}
 		}
 	}
 }
