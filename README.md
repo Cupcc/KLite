@@ -456,33 +456,33 @@ ________________________________________________________________________________
 #include "stimer.h"
 ```
 ________________________________________________________________________________
-+ stimer_t stimer_create(void (*handler)(void *), void *arg);
-	参数：
++ stimer_t stimer_create(void (*handler)(void *), void *arg);  
+	参数：  
 	+ `handler` 定时器回调函数  
 	+ `arg` 回调函数的参数  
 	返回：创建成功返回软件定时器标识符，失败返回`NULL`  
 	描述：创建一个软件定时器。  
 ________________________________________________________________________________
-+ void stimer_delete(stimer_t timer);
-	参数：
++ void stimer_delete(stimer_t timer);  
+	参数：  
 	+ `times` 定时器标识符  
 	返回：无  
 	描述：删除软件定时器。  
 ________________________________________________________________________________
-+ void stimer_start(stimer_t timer, uint32_t timeout);
-	参数：
++ void stimer_start(stimer_t timer, uint32_t timeout);  
+	参数：  
 	+ `times` 定时器标识符  
 	返回：无  
 	描述：启动软件定时器。  
 ________________________________________________________________________________
-+ void stimer_stop(stimer_t timer);
-	参数：
++ void stimer_stop(stimer_t timer);  
+	参数：  
 	+ `times` 定时器标识符  
 	返回：无  
 	描述：停止软件定时器。  
 ________________________________________________________________________________
-+ void stimer_service(void);
-	参数：无  
++ void stimer_service(void);  
+	参数：无    
 	返回：此函数在正常情况下不会返回。  
 	描述：处理软件定时器事件。  
 	> 如果要使用软件定时器功能，需要用户创建一个线程，调用这个函数，用来承载定时器的执行。  
@@ -493,43 +493,112 @@ ________________________________________________________________________________
 #include "mpool.h"
 ```
 ________________________________________________________________________________
-+ mpool_t mpool_create(uint32_t mem_size, uint32_t mem_count);
++ mpool_t mpool_create(uint32_t mem_size, uint32_t mem_count);  
+	参数：  
+	+ `mem_size` 内存块大小  
+	+ `mem_count` 内存块总数  
+	返回：创建成功返回标识符，失败返回`NULL`  
+	描述：创建块内存池。  
 ________________________________________________________________________________
-+ void    mpool_delete(mpool_t mpool);
++ void mpool_delete(mpool_t mpool);  
+	参数：  
+	+ `mpool` 标识符  
+	返回：无  
+	描述：删除块内存池。  
 ________________________________________________________________________________
-+ void   *mpool_alloc(mpool_t mpool);
++ void *mpool_alloc(mpool_t mpool);  
+	参数：  
+	+ `mpool` 标识符  
+	返回：申请成功返回内存指针，申请失败返回`NULL`  
+	描述：从内存池中申请一块内存。  
 ________________________________________________________________________________
-+ void    mpool_free(mpool_t mpool, void *mem);
++ void mpool_free(mpool_t mpool, void *mem);  
+	参数：  
+	+ `mpool` 标识符  
+	+ `mem` 内存指针  
+	返回：无  
+	描述：释放内存  
 
 ### 4.4 数据队列
 ```
 #include "queue.h"
 ```
 ________________________________________________________________________________
-queue_t queue_create(uint32_t item_size, uint32_t queue_depth);
+queue_t queue_create(uint32_t item_size, uint32_t queue_depth);  
+	参数：  
+	+ `item_size` 队列数据块大小  
+	+ `queue_depth` 队列深度  
+	返回：创建成功返回标识符，失败返回`NULL`  
+	描述：创建一个数据队列。  
 ________________________________________________________________________________
-void    queue_delete(queue_t queue);
+void queue_delete(queue_t queue);  
+	参数：  
+	+ `queue` 标识符  
+	返回：无  
+	描述：删除数据队列。  
 ________________________________________________________________________________
-void    queue_clear(queue_t queue);
+void queue_clear(queue_t queue);  
+	参数：  
+	+ `queue` 标识符  
+	返回：无  
+	描述：清空数据队列。  
 ________________________________________________________________________________
-bool    queue_send(queue_t queue, void *item, uint32_t timeout);
+bool queue_send(queue_t queue, void *item, uint32_t timeout);  
+	参数：  
+	+ `queue` 标识符  
+	+ `item` 数据指针  
+	+ `timeout` 超时时间（毫秒）  
+	返回：成功返回`true`，超时返回`false`  
+	描述：向队列中发送一条数据。  
 ________________________________________________________________________________
-bool    queue_recv(queue_t queue, void *item, uint32_t timeout);
+bool queue_recv(queue_t queue, void *item, uint32_t timeout);  
+	参数：  
+	+ `queue` 标识符  
+	+ `item` 数据指针  
+	+ `timeout` 超时时间（毫秒）  
+	返回：成功返回`true`，超时返回`false`  
+	描述：从队列中取出一条数据。  
 
 ### 4.5 字节流缓冲区
 ```
 #include "bstream.h"
 ```
 ________________________________________________________________________________
-bstream_t bstream_create(uint32_t size);
+bstream_t bstream_create(uint32_t size);  
+	参数：  
+	+ `size` 缓冲区长度  
+	返回：创建成功返回标识符，失败返回`NULL`  
+	描述：创建缓冲区。  
 ________________________________________________________________________________
-void      bstream_delete(bstream_t stream);
+void bstream_delete(bstream_t stream);  
+	参数：  
+	+ `stream` 标识符  
+	返回：无  
+	描述：删除缓冲区。  
 ________________________________________________________________________________
-void      bstream_clear(bstream_t stream);
+void bstream_clear(bstream_t stream);  
+	参数：  
+	+ `stream` 标识符  
+	返回：无  
+	描述：清空缓冲区。  
 ________________________________________________________________________________
-uint32_t  bstream_write(bstream_t stream, void *buf, uint32_t len, uint32_t timeout);
+uint32_t bstream_write(bstream_t stream, void *buf, uint32_t len, uint32_t timeout);  
+	参数：  
+	+ `stream` 标识符  
+	+ `buf` 数据指针  
+	+ `len` 数据长度  
+	+ `timeout` 超时时间（毫秒）  
+	返回：实际写入数据长度  
+	描述：向缓冲区写入指定长度的数据。  
 ________________________________________________________________________________
-uint32_t  bstream_read(bstream_t stream, void *buf, uint32_t len, uint32_t timeout);
+uint32_t bstream_read(bstream_t stream, void *buf, uint32_t len, uint32_t timeout);  
+	参数：  
+	+ `stream` 定时器标识符  
+	+ `buf` 数据指针  
+	+ `len` 数据长度  
+	+ `timeout` 超时时间（毫秒）  
+	返回：实际读出数据长度  
+	描述：从缓冲区中读出指定长度的数据。  
 
 ### 4.6 消息流缓冲区
 消息流缓冲区与字节流缓冲区的区别：字节流对数据的写入和读取是可拆分的，消息流则不可拆分。  
@@ -540,15 +609,41 @@ uint32_t  bstream_read(bstream_t stream, void *buf, uint32_t len, uint32_t timeo
 #include "mstream.h"
 ```
 ________________________________________________________________________________
-mstream_t mstream_create(uint32_t size);
+mstream_t mstream_create(uint32_t size);  
+	参数：  
+	+ `size` 缓冲区长度  
+	返回：创建成功返回标识符，失败返回`NULL`  
+	描述：创建缓冲区。  
 ________________________________________________________________________________
-void      mstream_delete(mstream_t queue);
+void mstream_delete(mstream_t stream);  
+	参数：  
+	+ `stream` 标识符  
+	返回：无  
+	描述：删除缓冲区。  
 ________________________________________________________________________________
-void      mstream_clear(mstream_t stream);
+void mstream_clear(mstream_t stream);  
+	参数：  
+	+ `stream` 标识符  
+	返回：无  
+	描述：清空缓冲区。  
 ________________________________________________________________________________
-uint32_t  mstream_write(mstream_t queue, void *buf, uint32_t len, uint32_t timeout);
+uint32_t mstream_write(mstream_t stream, void *buf, uint32_t len, uint32_t timeout);  
+	参数：  
+	+ `stream` 标识符  
+	+ `buf` 数据指针  
+	+ `len` 数据长度  
+	+ `timeout` 超时时间（毫秒）  
+	返回：实际写入数据长度  
+	描述：向缓冲区写入指定长度的数据。  
 ________________________________________________________________________________
-uint32_t  mstream_read(mstream_t queue, void *buf, uint32_t len, uint32_t timeout);
+uint32_t mstream_read(mstream_t stream, void *buf, uint32_t len, uint32_t timeout);  
+	参数：  
+	+ `stream` 定时器标识符  
+	+ `buf` 数据指针  
+	+ `len` 数据长度  
+	+ `timeout` 超时时间（毫秒）  
+	返回：实际读出数据长度  
+	描述：从缓冲区中读出指定长度的数据。  
 
 ## 五、其它函数
 
