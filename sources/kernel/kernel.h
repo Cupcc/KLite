@@ -96,6 +96,7 @@ void     event_set(event_t event);
 void     event_reset(event_t event);
 void     event_wait(event_t event);
 uint32_t event_timed_wait(event_t event, uint32_t timeout);
+#define  event_clear(event) event_reset(event)
 
 /******************************************************************************
 * mutex
@@ -122,6 +123,6 @@ uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout);
 #define  malloc(s)  heap_alloc(s)
 #define  free(p)    heap_free(p)
 #define  sleep(x)   thread_sleep(x)
-#define  clock()    kernel_time()
+#define  clock()    kernel_tick_count()
 
 #endif
