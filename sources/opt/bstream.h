@@ -24,14 +24,15 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#ifndef __MSG_QUEUE_H
-#define __MSG_QUEUE_H
+#ifndef __BSTREAM_H
+#define __BSTREAM_H
 
-typedef struct msg_queue *msg_queue_t;
+typedef struct bstream *bstream_t;
 
-msg_queue_t msg_queue_create(uint32_t size);
-void        msg_queue_delete(msg_queue_t queue);
-uint32_t    msg_queue_send(msg_queue_t queue, void *msg, uint32_t msg_size, uint32_t timeout);
-uint32_t    msg_queue_recv(msg_queue_t queue, void *msg, uint32_t msg_size, uint32_t timeout);
+bstream_t bstream_create(uint32_t size);
+void      bstream_delete(bstream_t stream);
+void      bstream_clear(bstream_t stream);
+uint32_t  bstream_write(bstream_t stream, void *buf, uint32_t len, uint32_t timeout);
+uint32_t  bstream_read(bstream_t stream, void *buf, uint32_t len, uint32_t timeout);
 
 #endif

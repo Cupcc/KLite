@@ -26,22 +26,22 @@
 ******************************************************************************/
 #include <string.h>
 #include "kernel.h"
-#include "event_group.h"
+#include "egroup.h"
 
-struct event_group
+struct egroup
 {
-	mutex_t mutex;
-	cond_t cond;
+	mutex_t  mutex;
+	cond_t   cond;
 	uint32_t bits;
 };
 
-event_group_t event_group_create(void)
+egroup_t egroup_create(void)
 {
-	struct event_group *event;
-	event = heap_alloc(sizeof(struct event_group));
+	struct egroup *event;
+	event = heap_alloc(sizeof(struct egroup));
 	if(event != NULL)
 	{
-		memset(event, 0, sizeof(struct event_group));
+		memset(event, 0, sizeof(struct egroup));
 		event->mutex = mutex_create();
 		event->cond = cond_create();
 		if(event->cond == NULL)
@@ -52,12 +52,12 @@ event_group_t event_group_create(void)
 	return event;
 }
 
-void event_group_delete(event_group_t event)
+void egroup_delete(egroup_t event)
 {
 	heap_free(event);
 }
 
-void event_group_set(event_group_t event, uint32_t bits)
+void egroup_set(egroup_t event, uint32_t bits)
 {
 	mutex_lock(event->mutex);
 	event->bits |= bits;
@@ -65,17 +65,21 @@ void event_group_set(event_group_t event, uint32_t bits)
 	cond_broadcast(event->cond);
 }
 
-void event_group_clear(event_group_t event, uint32_t bits)
+void egroup_clear(egroup_t event, uint32_t bits)
 {
 	mutex_lock(event->mutex);
 	event->bits &= ~bits;
 	mutex_unlock(event->mutex);
 }
 
-static uint32_t wait_bits(event_group_t event, uint32_t bits, bool wait_all, bool auto_clear)
+static uint32_t try_wait_bits(egroup_t event, uint32_t bits, uint32_t ops)
 {
 	uint32_t cmp;
+	uint32_t wait_all;
+	uint32_t auto_clear;
 	cmp = event->bits & bits;
+	wait_all = ops & EGROUP_OPS_WAIT_ALL;
+	auto_clear = ops & EGROUP_OPS_AUTO_CLEAR;
 	if((wait_all && (cmp == bits)) || ((!wait_all) && (cmp != 0)))
 	{
 		if(auto_clear)
@@ -87,29 +91,36 @@ static uint32_t wait_bits(event_group_t event, uint32_t bits, bool wait_all, boo
 	return 0;
 }
 
-uint32_t event_group_wait(event_group_t event, uint32_t bits, bool wait_all, bool auto_clear)
+uint32_t egroup_wait(egroup_t event, uint32_t bits, uint32_t ops)
 {
 	uint32_t ret;
 	mutex_lock(event->mutex);
-	ret = wait_bits(event, bits, wait_all, auto_clear);
-	while(ret == 0)
+	ret = try_wait_bits(event, bits, ops);
+	while(1)
 	{
+		ret = try_wait_bits(event, bits, ops);
+		if(ret != 0)
+		{
+			break;
+		}
 		cond_wait(event->cond, event->mutex);
-		ret = wait_bits(event, bits, wait_all, auto_clear);
 	}
 	mutex_unlock(event->mutex);
 	return ret;
 }
 
-uint32_t event_group_timed_wait(event_group_t event, uint32_t bits, bool wait_all, bool auto_clear, uint32_t timeout)
+uint32_t egroup_timed_wait(egroup_t event, uint32_t bits, uint32_t ops, uint32_t timeout)
 {
 	uint32_t ret;
 	mutex_lock(event->mutex);
-	ret = wait_bits(event, bits, wait_all, auto_clear);
-	while((ret == 0) && (timeout > 0))
+	while(1)
 	{
+		ret = try_wait_bits(event, bits, ops);
+		if((ret != 0) || (timeout == 0))
+		{
+			break;
+		}
 		timeout = cond_timed_wait(event->cond, event->mutex, timeout);
-		ret = wait_bits(event, bits, wait_all, auto_clear);
 	}
 	mutex_unlock(event->mutex);
 	return ret;

@@ -24,14 +24,20 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#ifndef __BLK_QUEUE_H
-#define __BLK_QUEUE_H
+#ifndef __EGROUP_H
+#define __EGROUP_H
 
-typedef struct blk_queue *blk_queue_t;
+#define EGROUP_OPS_WAIT_ANY    0x00
+#define EGROUP_OPS_WAIT_ALL    0x01
+#define EGROUP_OPS_AUTO_CLEAR  0x02
 
-blk_queue_t blk_queue_create(uint32_t item_size, uint32_t queue_depth);
-void        blk_queue_delete(blk_queue_t queue);
-bool        blk_queue_send(blk_queue_t queue, void *item, uint32_t timeout);
-bool        blk_queue_recv(blk_queue_t queue, void *item, uint32_t timeout);
+typedef struct egroup *egroup_t;
+
+egroup_t egroup_create(void);
+void     egroup_delete(egroup_t event);
+void     egroup_set(egroup_t event, uint32_t bits);
+void     egroup_clear(egroup_t event, uint32_t bits);
+uint32_t egroup_wait(egroup_t event, uint32_t bits, uint32_t ops);
+uint32_t egroup_timed_wait(egroup_t event, uint32_t bits, uint32_t ops, uint32_t timeout);
 
 #endif

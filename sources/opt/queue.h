@@ -24,16 +24,15 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#ifndef __EVENT_GROUP_H
-#define __EVENT_GROUP_H
+#ifndef __QUEUE_H
+#define __QUEUE_H
 
-typedef struct event_group *event_group_t;
+typedef struct queue *queue_t;
 
-event_group_t event_group_create(void);
-void          event_group_delete(event_group_t event);
-void          event_group_set(event_group_t event, uint32_t bits);
-void          event_group_clear(event_group_t event, uint32_t bits);
-uint32_t      event_group_wait(event_group_t event, uint32_t bits, bool wait_all, bool auto_clear);
-uint32_t      event_group_timed_wait(event_group_t event, uint32_t bits, bool wait_all, bool auto_clear, uint32_t timeout);
+queue_t queue_create(uint32_t item_size, uint32_t queue_depth);
+void    queue_delete(queue_t queue);
+void    queue_clear(queue_t queue);
+bool    queue_send(queue_t queue, void *item, uint32_t timeout);
+bool    queue_recv(queue_t queue, void *item, uint32_t timeout);
 
 #endif

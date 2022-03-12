@@ -27,8 +27,8 @@
 #include <string.h>
 #include "kernel.h"
 #include "list.h"
-#include "mem_pool.h"
-#include "blk_queue.h"
+#include "mpool.h"
+#include "queue.h"
 
 struct queue_node
 {
@@ -37,43 +37,43 @@ struct queue_node
 	uint8_t *data;
 };
 
-struct blk_queue
+struct queue
 {
 	struct queue_node *head;
 	struct queue_node *tail;
 	sem_t sem;
 	mutex_t mutex;
-	mem_pool_t pool;
+	mpool_t mpool;
 	uint32_t item_size;
 };
 
-blk_queue_t blk_queue_create(uint32_t item_size, uint32_t queue_depth)
+queue_t queue_create(uint32_t item_size, uint32_t queue_depth)
 {
-	blk_queue_t queue;
-	queue = heap_alloc(sizeof(struct blk_queue));
+	queue_t queue;
+	queue = heap_alloc(sizeof(struct queue));
 	if(queue != NULL)
 	{
-		memset(queue, 0, sizeof(struct blk_queue));
+		memset(queue, 0, sizeof(struct queue));
 		queue->item_size = item_size;
 		queue->sem = sem_create(0);
 		queue->mutex = mutex_create();
-		queue->pool = mem_pool_create(sizeof(struct queue_node) + item_size, queue_depth);
+		queue->mpool = mpool_create(sizeof(struct queue_node) + item_size, queue_depth);
 	}
 	return queue;
 }
 
-void blk_queue_delete(blk_queue_t queue)
+void queue_delete(queue_t queue)
 {
-	mem_pool_delete(queue->pool);
+	mpool_delete(queue->mpool);
 	sem_delete(queue->sem);
 	mutex_delete(queue->mutex);
 	heap_free(queue);
 }
 
-bool blk_queue_send(blk_queue_t queue, void *item, uint32_t timeout)
+bool queue_send(queue_t queue, void *item, uint32_t timeout)
 {
 	struct queue_node *node;
-	node = mem_pool_alloc(queue->pool);
+	node = mpool_alloc(queue->mpool);
 	if(node != NULL)
 	{
 		memcpy(node->data, item, queue->item_size);
@@ -86,7 +86,7 @@ bool blk_queue_send(blk_queue_t queue, void *item, uint32_t timeout)
 	return false;
 }
 
-bool blk_queue_recv(blk_queue_t queue, void *item, uint32_t timeout)
+bool queue_recv(queue_t queue, void *item, uint32_t timeout)
 {
 	struct queue_node *node;
 	if(sem_timed_wait(queue->sem, timeout))
@@ -96,7 +96,7 @@ bool blk_queue_recv(blk_queue_t queue, void *item, uint32_t timeout)
 		memcpy(item, node->data, queue->item_size);
 		list_remove(queue, node);
 		mutex_unlock(queue->mutex);
-		mem_pool_free(queue->pool, node);
+		mpool_free(queue->mpool, node);
 		return true;
 	}
 	return false;

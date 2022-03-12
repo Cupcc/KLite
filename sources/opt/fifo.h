@@ -35,9 +35,9 @@ typedef struct
 	uint32_t rp;
 }fifo_t;
 
-void     fifo_init(fifo_t *fifo, void *buf, uint32_t buf_size);
-uint32_t fifo_read(fifo_t *fifo, void *buf, uint32_t buf_size);
-uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t buf_size);
+void     fifo_init(fifo_t *fifo, void *buf, uint32_t size);
+uint32_t fifo_read(fifo_t *fifo, void *buf, uint32_t size);
+uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t size);
 void     fifo_clear(fifo_t *fifo);
 uint32_t fifo_space(fifo_t *fifo);
 

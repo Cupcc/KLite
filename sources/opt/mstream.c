@@ -26,70 +26,79 @@
 ******************************************************************************/
 #include "kernel.h"
 #include "fifo.h"
-#include "msg_queue.h"
+#include "mstream.h"
 
-struct msg_queue
+struct mstream
 {
-	fifo_t fifo;
+	fifo_t  fifo;
 	mutex_t mutex;
 	event_t empty;
 	event_t full;
 };
 
-msg_queue_t msg_queue_create(uint32_t size)
+mstream_t mstream_create(uint32_t size)
 {
-	msg_queue_t queue;
-	queue = heap_alloc(sizeof(struct msg_queue) + size);
-	if(queue != NULL)
+	struct mstream *stream;
+	stream = heap_alloc(sizeof(struct mstream) + size);
+	if(stream != NULL)
 	{
-		fifo_init(&queue->fifo, queue + 1, size);
-		queue->mutex = mutex_create();
-		queue->empty = event_create(true);
-		queue->full = event_create(true);
-		if(queue->full == NULL)
+		fifo_init(&stream->fifo, stream + 1, size);
+		stream->mutex = mutex_create();
+		stream->empty = event_create(true);
+		stream->full  = event_create(true);
+		if(stream->full == NULL)
 		{
 			return NULL;
 		}
 	}
-	return queue;
+	return stream;
 }
 
-void msg_queue_delete(msg_queue_t queue)
+void mstream_delete(mstream_t stream)
 {
-	mutex_delete(queue->mutex);
-	event_delete(queue->empty);
-	event_delete(queue->full);
-	heap_free(queue);
+	mutex_delete(stream->mutex);
+	event_delete(stream->empty);
+	event_delete(stream->full);
+	heap_free(stream);
 }
 
-uint32_t msg_queue_send(msg_queue_t queue, void *msg, uint32_t msg_size, uint32_t timeout)
+void mstream_clear(mstream_t stream)
+{
+	mutex_lock(stream->mutex);
+	fifo_clear(&stream->fifo);
+	mutex_unlock(stream->mutex);
+	event_set(stream->empty);
+}
+
+uint32_t mstream_write(mstream_t stream, void *buf, uint32_t len, uint32_t timeout)
 {
 	uint32_t ret;
 	uint32_t ttl;
-	ttl = msg_size + sizeof(uint32_t);
+	ttl = len + sizeof(uint32_t);
 	while(1)
 	{
-		mutex_lock(queue->mutex);
-		ret = fifo_space(&queue->fifo);
+		mutex_lock(stream->mutex);
+		ret = fifo_space(&stream->fifo);
 		if(ret >= ttl)
 		{
-			fifo_write(&queue->fifo, &msg_size, sizeof(uint32_t));
-			fifo_write(&queue->fifo, msg, msg_size);
-			mutex_unlock(queue->mutex);
-			event_set(queue->full);
-			return msg_size;
+			fifo_write(&stream->fifo, &len, sizeof(uint32_t));
+			fifo_write(&stream->fifo, buf, len);
+			mutex_unlock(stream->mutex);
+			event_set(stream->full);
+			return len;
 		}
 		if(timeout > 0)
 		{
-			mutex_unlock(queue->mutex);
-			timeout = event_timed_wait(queue->empty, timeout);
+			mutex_unlock(stream->mutex);
+			timeout = event_timed_wait(stream->empty, timeout);
 			continue;
 		}
+		mutex_unlock(stream->mutex);
 		return 0;
 	}
 }
 
-uint32_t msg_queue_recv(msg_queue_t queue, void *msg, uint32_t msg_size, uint32_t timeout)
+uint32_t mstream_read(mstream_t stream, void *buf, uint32_t len, uint32_t timeout)
 {
 	uint32_t ret;
 	uint32_t ttl;
@@ -97,29 +106,30 @@ uint32_t msg_queue_recv(msg_queue_t queue, void *msg, uint32_t msg_size, uint32_
 	uint8_t  dummy;
 	while(1)
 	{
-		mutex_lock(queue->mutex);
-		ret = fifo_read(&queue->fifo, &ttl, sizeof(uint32_t));
+		mutex_lock(stream->mutex);
+		ret = fifo_read(&stream->fifo, &ttl, sizeof(uint32_t));
 		if(ret != 0)
 		{
-			fifo_read(&queue->fifo, msg, (msg_size < ttl) ? msg_size : ttl);
-			if(msg_size < ttl)
+			ret = fifo_read(&stream->fifo, buf, (len < ttl) ? len : ttl);
+			if(ret < ttl)
 			{
-				over = ttl - msg_size;
+				over = ttl - ret;
 				while(over--)
 				{
-					fifo_read(&queue->fifo, &dummy, 1);
+					fifo_read(&stream->fifo, &dummy, 1);
 				}
 			}
-			mutex_unlock(queue->mutex);
-			event_set(queue->empty);
+			mutex_unlock(stream->mutex);
+			event_set(stream->empty);
 			return ttl;
 		}
 		if(timeout > 0)
 		{
-			mutex_unlock(queue->mutex);
-			timeout = event_timed_wait(queue->full, timeout);
+			mutex_unlock(stream->mutex);
+			timeout = event_timed_wait(stream->full, timeout);
 			continue;
 		}
+		mutex_unlock(stream->mutex);
 		return 0;
 	}
 }
