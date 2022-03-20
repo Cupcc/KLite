@@ -694,11 +694,11 @@ ________________________________________________________________________________
 	参数：无  
 	返回：无  
 ________________________________________________________________________________
-+ void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg, void *exit);
++ void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg, void *exit);  
 	描述：初始化线程栈的接口  
 	参数：  
-	`stack_base` 栈底指针
-	`stack_top`  栈顶指针
+	`stack_base` 栈底指针  
+	`stack_top`  栈顶指针  
 	`entry`      线程入口函数地址  
 	`arg`        线程入口函数参数  
 	`exit`       线程出口函数地址  
