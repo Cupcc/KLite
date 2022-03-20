@@ -24,10 +24,10 @@ static void usage_thread_entry(void *arg)
 	while(1)
 	{
 		tick = kernel_tick_count();
-		idle = kernel_tick_idle();
+		idle = kernel_idle_time();
 		sleep(5000);
 		tick = kernel_tick_count() - tick;
-		idle = kernel_tick_idle() - idle;
+		idle = kernel_idle_time() - idle;
 		heap_usage(&used, &free);
 		NRF_LOG_INFO("CPU: %d%%, HEAP: used=%d, free=%d", 100 * (tick - idle) / tick, used, free);
 	}
