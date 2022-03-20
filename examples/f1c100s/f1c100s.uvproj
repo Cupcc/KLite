@@ -443,36 +443,6 @@
               <FileType>1</FileType>
               <FilePath>..\..\sources\opt\fifo.c</FilePath>
             </File>
-            <File>
-              <FileName>soft_timer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\opt\soft_timer.c</FilePath>
-            </File>
-            <File>
-              <FileName>event_group.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\opt\event_group.c</FilePath>
-            </File>
-            <File>
-              <FileName>byte_stream.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\opt\byte_stream.c</FilePath>
-            </File>
-            <File>
-              <FileName>mem_pool.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\opt\mem_pool.c</FilePath>
-            </File>
-            <File>
-              <FileName>blk_queue.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\opt\blk_queue.c</FilePath>
-            </File>
-            <File>
-              <FileName>msg_queue.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sources\opt\msg_queue.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
