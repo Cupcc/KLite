@@ -38,13 +38,15 @@ thread_t thread_self(void)
 thread_t thread_create(void (*entry)(void*), void *arg, uint32_t stack_size)
 {
 	struct tcb *tcb;
+	uint8_t *stack_base;
 	stack_size = stack_size ? stack_size : 1024;
 	tcb = heap_alloc(sizeof(struct tcb) + stack_size);
 	if(tcb != NULL)
 	{
+		stack_base = (uint8_t *)(tcb + 1);
 		memset(tcb, 0, sizeof(struct tcb));
 		tcb->prio  = THREAD_PRIORITY_NORMAL;
-		tcb->stack = cpu_contex_init((uint8_t *)(tcb + 1) + stack_size, entry, arg, thread_exit);
+		tcb->stack = cpu_contex_init(stack_base, stack_base + stack_size, entry, arg, thread_exit);
 		tcb->entry = entry;
 		tcb->node_wait.tcb = tcb;
 		tcb->node_sched.tcb = tcb;

@@ -70,7 +70,7 @@ void  cpu_sys_init(void);
 void  cpu_sys_start(void);
 void  cpu_sys_sleep(uint32_t time);
 void  cpu_contex_switch(void);
-void *cpu_contex_init(void *stack, void *entry, void *arg, void *exit);
+void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg, void *exit);
 void  cpu_enter_critical(void);
 void  cpu_leave_critical(void);
 
