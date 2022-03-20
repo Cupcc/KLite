@@ -63,6 +63,11 @@ void kernel_idle(void)
 	}
 }
 
+uint32_t kernel_idle_time(void)
+{
+	return m_idle_thread ? thread_time(m_idle_thread) : 0;
+}
+
 void kernel_tick(uint32_t time)
 {
 	m_tick_count += time;
@@ -75,11 +80,6 @@ void kernel_tick(uint32_t time)
 uint32_t kernel_tick_count(void)
 {
 	return m_tick_count;
-}
-
-uint32_t kernel_tick_idle(void)
-{
-	return m_idle_thread ? thread_time(m_idle_thread) : 0;
 }
 
 uint32_t kernel_version(void)

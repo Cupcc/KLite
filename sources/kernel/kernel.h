@@ -42,11 +42,11 @@ typedef struct cond  *cond_t;
 ******************************************************************************/
 void     kernel_init(void *heap_addr, uint32_t heap_size);
 void     kernel_start(void);
+uint32_t kernel_version(void);
 void     kernel_idle(void);
+uint32_t kernel_idle_time(void);
 void     kernel_tick(uint32_t time);
 uint32_t kernel_tick_count(void);
-uint32_t kernel_tick_idle(void);
-uint32_t kernel_version(void);
 
 /******************************************************************************
 * heap
