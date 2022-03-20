@@ -34,10 +34,10 @@ void cpu_contex_switch(void)
 	NVIC_INT_CTRL = PEND_INT_SET;
 }
 
-void *cpu_contex_init(void *stack, void *entry, void *arg, void *exit)
+void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg, void *exit)
 {
 	uint32_t *sp;
-	sp = (uint32_t *)(((uint32_t)stack) & 0xFFFFFFF8);
+	sp = (uint32_t *)(((uint32_t)stack_top) & 0xFFFFFFF8);
 	*(--sp) = 0x01000000;               // xPSR
 	*(--sp) = (uint32_t)entry;          // PC
 	*(--sp) = (uint32_t)exit ;          // R14(LR)

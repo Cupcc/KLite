@@ -26,7 +26,7 @@
 ******************************************************************************/
 #include "kernel.h"
 //#error "Include CMSIS based device header here!"
-//#include "stm32f10x.h"
+#include "stm32f10x.h"
 //#include "stm32f2xx.h"
 
 static uint32_t m_sys_nesting;

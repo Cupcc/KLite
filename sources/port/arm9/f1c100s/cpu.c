@@ -100,10 +100,10 @@ void cpu_leave_critical(void)
 	}
 }
 
-void *cpu_contex_init(void *stack, void *entry, void *arg, void *exit)
+void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg, void *exit)
 {
 	uint32_t *sp;
-	sp = (uint32_t *)(((uint32_t)stack) & 0xFFFFFFF8);
+	sp = (uint32_t *)(((uint32_t)stack_top) & 0xFFFFFFF8);
 	*(--sp) = (uint32_t)entry;          // PC
 	*(--sp) = (uint32_t)exit;           // LR
 	*(--sp) = 7;                        // R7
