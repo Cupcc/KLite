@@ -34,7 +34,7 @@ struct queue_node
 {
 	struct queue_node *prev;
 	struct queue_node *next;
-	uint8_t *data;
+	uint8_t data[1];
 };
 
 struct queue
