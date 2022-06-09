@@ -43,7 +43,7 @@ mpool_t mpool_create(uint32_t item_size, uint32_t item_count)
 	uint32_t i;
 	uint32_t item;
 	mpool_t mpool;
-	mpool = heap_alloc((item_size + item_count * sizeof(void *)) + sizeof(struct mpool));
+	mpool = heap_alloc(item_count * (item_size + sizeof(void *)) + sizeof(struct mpool));
 	if(mpool != NULL)
 	{
 		memset(mpool, 0, sizeof(sizeof(struct mpool)));
