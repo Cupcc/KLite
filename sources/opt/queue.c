@@ -34,17 +34,17 @@ struct queue_node
 {
 	struct queue_node *prev;
 	struct queue_node *next;
-	uint8_t data[1];
+	uint8_t data[4];
 };
 
 struct queue
 {
 	struct queue_node *head;
 	struct queue_node *tail;
-	sem_t sem;
-	mutex_t mutex;
-	mpool_t mpool;
-	uint32_t item_size;
+	sem_t    sem;
+	mutex_t  mutex;
+	mpool_t  mpool;
+	uint32_t size;
 };
 
 queue_t queue_create(uint32_t item_size, uint32_t queue_depth)
@@ -54,8 +54,8 @@ queue_t queue_create(uint32_t item_size, uint32_t queue_depth)
 	if(queue != NULL)
 	{
 		memset(queue, 0, sizeof(struct queue));
-		queue->item_size = item_size;
-		queue->sem = sem_create(0);
+		queue->size  = item_size;
+		queue->sem   = sem_create(0);
 		queue->mutex = mutex_create();
 		queue->mpool = mpool_create(sizeof(struct queue_node) + item_size, queue_depth);
 	}
@@ -65,8 +65,8 @@ queue_t queue_create(uint32_t item_size, uint32_t queue_depth)
 void queue_delete(queue_t queue)
 {
 	mpool_delete(queue->mpool);
-	sem_delete(queue->sem);
 	mutex_delete(queue->mutex);
+	sem_delete(queue->sem);
 	heap_free(queue);
 }
 
@@ -76,7 +76,8 @@ bool queue_send(queue_t queue, void *item, uint32_t timeout)
 	node = mpool_alloc(queue->mpool);
 	if(node != NULL)
 	{
-		memcpy(node->data, item, queue->item_size);
+		memset(node, 0, sizeof(struct queue_node));
+		memcpy(node->data, item, queue->size);
 		mutex_lock(queue->mutex);
 		list_append(queue, node);
 		mutex_unlock(queue->mutex);
@@ -93,7 +94,7 @@ bool queue_recv(queue_t queue, void *item, uint32_t timeout)
 	{
 		mutex_lock(queue->mutex);
 		node = queue->head;
-		memcpy(item, node->data, queue->item_size);
+		memcpy(item, node->data, queue->size);
 		list_remove(queue, node);
 		mutex_unlock(queue->mutex);
 		mpool_free(queue->mpool, node);

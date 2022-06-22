@@ -31,28 +31,30 @@
 struct mpool
 {
 	mutex_t   mutex;
-	uint32_t *item_addr;
+	uint32_t *addr_list;
 	uint32_t  item_count;
-	uint32_t  item_free;
-	uint32_t  next_alloc;
-	uint32_t  next_free;
+	uint32_t  free_count;
+	uint32_t  next_out;
+	uint32_t  next_in;
 };
 
 mpool_t mpool_create(uint32_t item_size, uint32_t item_count)
 {
 	uint32_t i;
 	uint32_t item;
-	mpool_t mpool;
-	mpool = heap_alloc(item_count * (item_size + sizeof(void *)) + sizeof(struct mpool));
+	uint32_t msize;
+	mpool_t  mpool;
+	msize = sizeof(struct mpool) + (sizeof(uint32_t *) + item_size) * item_count;
+	mpool = heap_alloc(msize);
 	if(mpool != NULL)
 	{
-		memset(mpool, 0, sizeof(sizeof(struct mpool)));
+		memset(mpool, 0, msize);
 		mpool->mutex = mutex_create();
 		if(mpool->mutex != NULL)
 		{
-			mpool->item_addr = (uint32_t *)(mpool + 1);
+			mpool->addr_list = (uint32_t *)(mpool + 1);
 			mpool->item_count = item_count;
-			item = (uint32_t)(mpool->item_addr + item_count);
+			item = (uint32_t)(mpool->addr_list + item_count);
 			for(i = 0; i < item_count; i++)
 			{
 				mpool_free(mpool, (void *)item);
@@ -75,14 +77,15 @@ void *mpool_alloc(mpool_t mpool)
 {
 	uint32_t item = 0;
 	mutex_lock(mpool->mutex);
-	if(mpool->item_free > 0)
+	if(mpool->free_count > 0)
 	{
-		item = mpool->item_addr[mpool->next_alloc];
-		if(++mpool->next_alloc >= mpool->item_count)
+		item = mpool->addr_list[mpool->next_out];
+		mpool->free_count--;
+		mpool->next_out++;
+		if(mpool->next_out >= mpool->item_count)
 		{
-			mpool->next_alloc = 0;
+			mpool->next_out = 0;
 		}
-		mpool->item_free--;
 	}
 	mutex_unlock(mpool->mutex);
 	return (void *)item;
@@ -90,13 +93,13 @@ void *mpool_alloc(mpool_t mpool)
 
 void mpool_free(mpool_t mpool, void *mem)
 {
-	uint32_t item = (uint32_t)mem;
 	mutex_lock(mpool->mutex);
-	mpool->item_addr[mpool->next_free] = item;
-	if(++mpool->next_free >= mpool->item_count)
+	mpool->addr_list[mpool->next_in] = (uint32_t)mem;
+	mpool->free_count++;
+	mpool->next_in++;
+	if(mpool->next_in >= mpool->item_count)
 	{
-		mpool->next_free = 0;
+		mpool->next_in = 0;
 	}
-	mpool->item_free++;
 	mutex_unlock(mpool->mutex);
 }
