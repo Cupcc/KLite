@@ -80,7 +80,7 @@ void fifo_clear(fifo_t *fifo)
 	fifo->rp = 0;
 }
 
-uint32_t fifo_space(fifo_t *fifo)
+uint32_t fifo_get_free(fifo_t *fifo)
 {
 	if(fifo->rp > fifo->wp)
 	{
@@ -89,5 +89,17 @@ uint32_t fifo_space(fifo_t *fifo)
 	else
 	{
 		return fifo->rp + fifo->size - fifo->wp;
+	}
+}
+
+uint32_t fifo_get_used(fifo_t *fifo)
+{
+	if(fifo->wp >= fifo->rp)
+	{
+		return fifo->wp - fifo->rp;
+	}
+	else
+	{
+		return fifo->wp + fifo->size - fifo->rp;
 	}
 }
