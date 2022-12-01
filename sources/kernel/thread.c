@@ -47,7 +47,7 @@ thread_t thread_create(void (*entry)(void*), void *arg, uint32_t stack_size)
 		memset(tcb, 0, sizeof(struct tcb));
 		memset(stack_base, 0xCC, stack_size);
 		tcb->prio  = THREAD_PRIORITY_NORMAL;
-		tcb->stack = cpu_contex_init(stack_base, stack_base + stack_size, entry, arg, thread_exit);
+		tcb->stack = cpu_contex_init(stack_base, stack_base + stack_size, (void*)entry, arg, (void*)thread_exit);
 		tcb->entry = entry;
 		tcb->node_wait.tcb = tcb;
 		tcb->node_sched.tcb = tcb;
