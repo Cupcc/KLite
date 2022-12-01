@@ -2912,10 +2912,10 @@
         <configuration>cortex-cm4</configuration>
       </excluded>
       <file>
-        <name>$PROJ_DIR$\..\..\sources\arch\cortex-m0\cpu.c</name>
+        <name>$PROJ_DIR$\..\..\sources\port\cortex-m0\cpu.c</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\sources\arch\cortex-m0\cpu_asm_iar.s</name>
+        <name>$PROJ_DIR$\..\..\sources\port\cortex-m0\cpu_asm_iar.s</name>
       </file>
     </group>
     <group>
@@ -2925,10 +2925,10 @@
         <configuration>cortex-cm4</configuration>
       </excluded>
       <file>
-        <name>$PROJ_DIR$\..\..\sources\arch\cortex-m3\cpu.c</name>
+        <name>$PROJ_DIR$\..\..\sources\port\cortex-m3\cpu.c</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\sources\arch\cortex-m3\cpu_asm_iar.s</name>
+        <name>$PROJ_DIR$\..\..\sources\port\cortex-m3\cpu_asm_iar.s</name>
       </file>
     </group>
     <group>
@@ -2938,10 +2938,10 @@
         <configuration>cortex-cm3</configuration>
       </excluded>
       <file>
-        <name>$PROJ_DIR$\..\..\sources\arch\cortex-m4\cpu.c</name>
+        <name>$PROJ_DIR$\..\..\sources\port\cortex-m4\cpu.c</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\sources\arch\cortex-m4\cpu_asm_iar.s</name>
+        <name>$PROJ_DIR$\..\..\sources\port\cortex-m4\cpu_asm_iar.s</name>
       </file>
     </group>
   </group>
