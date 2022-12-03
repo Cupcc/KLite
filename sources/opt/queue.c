@@ -58,6 +58,19 @@ queue_t queue_create(uint32_t item_size, uint32_t queue_depth)
 		queue->sem   = sem_create(0);
 		queue->mutex = mutex_create();
 		queue->mpool = mpool_create(sizeof(struct queue_node) + item_size, queue_depth);
+		if(queue->mpool == NULL)
+		{
+			if(queue->mutex != NULL)
+			{
+				mutex_delete(queue->mutex);
+			}
+			if(queue->sem != NULL)
+			{
+				sem_delete(queue->sem);
+			}
+			heap_free(queue);
+			return NULL;
+		}
 	}
 	return queue;
 }
