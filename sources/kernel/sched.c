@@ -102,6 +102,7 @@ void sched_tcb_reset(struct tcb *tcb, uint32_t prio)
 			if(tcb->list_sched->head == NULL)
 			{
 				m_prio_bitmap &= ~(1 << tcb->prio);
+				m_prio_highest = find_highest_priority(m_prio_highest);
 			}
 			/* append to new list */
 			tcb->list_sched = &m_list_ready[prio];
