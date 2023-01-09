@@ -29,7 +29,7 @@
 .thumb
 
 .extern sched_tcb_now
-.extern sched_tcb_new
+.extern sched_tcb_next
 
 .global PendSV_Handler
 
@@ -50,7 +50,7 @@ PendSV_Handler:
 	STR     R2, [R1]
 
 POPSTACK:
-	LDR     R2, =sched_tcb_new
+	LDR     R2, =sched_tcb_next
 	LDR     R3, [R2]
 	STR     R3, [R0]
 	LDR     R0, [R3]
