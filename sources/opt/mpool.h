@@ -29,9 +29,9 @@
 
 typedef struct mpool *mpool_t;
 
-mpool_t mpool_create(uint32_t mem_size, uint32_t mem_count);
+mpool_t mpool_create(uint32_t block_size, uint32_t block_count);
 void    mpool_delete(mpool_t mpool);
 void   *mpool_alloc(mpool_t mpool);
-void    mpool_free(mpool_t mpool, void *mem);
+void    mpool_free(mpool_t mpool, void *block);
 
 #endif

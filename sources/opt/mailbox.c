@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -26,9 +26,9 @@
 ******************************************************************************/
 #include "kernel.h"
 #include "fifo.h"
-#include "mstream.h"
+#include "mailbox.h"
 
-struct mstream
+struct mailbox
 {
 	fifo_t  fifo;
 	mutex_t mutex;
@@ -36,69 +36,83 @@ struct mstream
 	event_t full;
 };
 
-mstream_t mstream_create(uint32_t size)
+mailbox_t mailbox_create(uint32_t size)
 {
-	struct mstream *stream;
-	stream = heap_alloc(sizeof(struct mstream) + size);
-	if(stream != NULL)
+	struct mailbox *mailbox;
+	mailbox = heap_alloc(NULL, sizeof(struct mailbox) + size);
+	if(mailbox != NULL)
 	{
-		fifo_init(&stream->fifo, stream + 1, size);
-		stream->mutex = mutex_create();
-		stream->empty = event_create(true);
-		stream->full  = event_create(true);
-		if(stream->full == NULL)
+		fifo_init(&mailbox->fifo, mailbox + 1, size);
+		mailbox->mutex = mutex_create();
+		if(mailbox->mutex == NULL)
 		{
+			heap_free(NULL, mailbox);
+			return NULL;
+		}
+		mailbox->empty = event_create(true);
+		if(mailbox->empty == NULL)
+		{
+			mutex_delete(mailbox->mutex);
+			heap_free(NULL, mailbox);
+			return NULL;
+		}
+		mailbox->full = event_create(true);
+		if(mailbox->full == NULL)
+		{
+			mutex_delete(mailbox->mutex);
+			event_delete(mailbox->empty);
+			heap_free(NULL, mailbox);
 			return NULL;
 		}
 	}
-	return stream;
+	return mailbox;
 }
 
-void mstream_delete(mstream_t stream)
+void mailbox_delete(mailbox_t mailbox)
 {
-	mutex_delete(stream->mutex);
-	event_delete(stream->empty);
-	event_delete(stream->full);
-	heap_free(stream);
+	mutex_delete(mailbox->mutex);
+	event_delete(mailbox->empty);
+	event_delete(mailbox->full);
+	heap_free(NULL, mailbox);
 }
 
-void mstream_clear(mstream_t stream)
+void mailbox_clear(mailbox_t mailbox)
 {
-	mutex_lock(stream->mutex);
-	fifo_clear(&stream->fifo);
-	mutex_unlock(stream->mutex);
-	event_set(stream->empty);
+	mutex_lock(mailbox->mutex);
+	fifo_clear(&mailbox->fifo);
+	mutex_unlock(mailbox->mutex);
+	event_set(mailbox->empty);
 }
 
-uint32_t mstream_write(mstream_t stream, void *buf, uint32_t len, uint32_t timeout)
+uint32_t mailbox_post(mailbox_t mailbox, void *buf, uint32_t len, uint32_t timeout)
 {
 	uint32_t ret;
 	uint32_t ttl;
 	ttl = len + sizeof(uint32_t);
 	while(1)
 	{
-		mutex_lock(stream->mutex);
-		ret = fifo_space(&stream->fifo);
+		mutex_lock(mailbox->mutex);
+		ret = fifo_get_free(&mailbox->fifo);
 		if(ret >= ttl)
 		{
-			fifo_write(&stream->fifo, &len, sizeof(uint32_t));
-			fifo_write(&stream->fifo, buf, len);
-			mutex_unlock(stream->mutex);
-			event_set(stream->full);
+			fifo_write(&mailbox->fifo, &len, sizeof(uint32_t));
+			fifo_write(&mailbox->fifo, buf, len);
+			mutex_unlock(mailbox->mutex);
+			event_set(mailbox->full);
 			return len;
 		}
 		if(timeout > 0)
 		{
-			mutex_unlock(stream->mutex);
-			timeout = event_timed_wait(stream->empty, timeout);
+			mutex_unlock(mailbox->mutex);
+			timeout = event_timed_wait(mailbox->empty, timeout);
 			continue;
 		}
-		mutex_unlock(stream->mutex);
+		mutex_unlock(mailbox->mutex);
 		return 0;
 	}
 }
 
-uint32_t mstream_read(mstream_t stream, void *buf, uint32_t len, uint32_t timeout)
+uint32_t mailbox_wait(mailbox_t mailbox, void *buf, uint32_t len, uint32_t timeout)
 {
 	uint32_t ret;
 	uint32_t ttl;
@@ -106,30 +120,30 @@ uint32_t mstream_read(mstream_t stream, void *buf, uint32_t len, uint32_t timeou
 	uint8_t  dummy;
 	while(1)
 	{
-		mutex_lock(stream->mutex);
-		ret = fifo_read(&stream->fifo, &ttl, sizeof(uint32_t));
+		mutex_lock(mailbox->mutex);
+		ret = fifo_read(&mailbox->fifo, &ttl, sizeof(uint32_t));
 		if(ret != 0)
 		{
-			ret = fifo_read(&stream->fifo, buf, (len < ttl) ? len : ttl);
+			ret = fifo_read(&mailbox->fifo, buf, (len < ttl) ? len : ttl);
 			if(ret < ttl)
 			{
 				over = ttl - ret;
 				while(over--)
 				{
-					fifo_read(&stream->fifo, &dummy, 1);
+					fifo_read(&mailbox->fifo, &dummy, 1);
 				}
 			}
-			mutex_unlock(stream->mutex);
-			event_set(stream->empty);
+			mutex_unlock(mailbox->mutex);
+			event_set(mailbox->empty);
 			return ttl;
 		}
 		if(timeout > 0)
 		{
-			mutex_unlock(stream->mutex);
-			timeout = event_timed_wait(stream->full, timeout);
+			mutex_unlock(mailbox->mutex);
+			timeout = event_timed_wait(mailbox->full, timeout);
 			continue;
 		}
-		mutex_unlock(stream->mutex);
+		mutex_unlock(mailbox->mutex);
 		return 0;
 	}
 }

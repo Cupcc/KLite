@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -24,15 +24,20 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#ifndef __STIMER_H
-#define __STIMER_H
+#ifndef __EVENT_FLAGS_H
+#define __EVENT_FLAGS_H
 
-typedef struct stimer *stimer_t;
+#define EVENT_FLAGS_WAIT_ANY    0x00
+#define EVENT_FLAGS_WAIT_ALL    0x01
+#define EVENT_FLAGS_AUTO_RESET  0x02
 
-stimer_t stimer_create(void (*handler)(void *), void *arg);
-void     stimer_delete(stimer_t timer);
-void     stimer_start(stimer_t timer, uint32_t timeout);
-void     stimer_stop(stimer_t timer);
-void     stimer_service(void);
+typedef struct event_flags *event_flags_t;
+
+event_flags_t event_flags_create(void);
+void          event_flags_delete(event_flags_t flags);
+void          event_flags_set(event_flags_t flags, uint32_t bits);
+void          event_flags_reset(event_flags_t flags, uint32_t bits);
+uint32_t      event_flags_wait(event_flags_t flags, uint32_t bits, uint32_t ops);
+uint32_t      event_flags_timed_wait(event_flags_t flags, uint32_t bits, uint32_t ops, uint32_t timeout);
 
 #endif

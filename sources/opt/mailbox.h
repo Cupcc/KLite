@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -24,15 +24,15 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#ifndef __MSTREAM_H
-#define __MSTREAM_H
+#ifndef __MAILBOX_H
+#define __MAILBOX_H
 
-typedef struct mstream *mstream_t;
+typedef struct mailbox *mailbox_t;
 
-mstream_t mstream_create(uint32_t size);
-void      mstream_delete(mstream_t stream);
-void      mstream_clear(mstream_t stream);
-uint32_t  mstream_write(mstream_t stream, void *buf, uint32_t len, uint32_t timeout);
-uint32_t  mstream_read(mstream_t stream, void *buf, uint32_t len, uint32_t timeout);
+mailbox_t mailbox_create(uint32_t size);
+void      mailbox_delete(mailbox_t mailbox);
+void      mailbox_clear(mailbox_t mailbox);
+uint32_t  mailbox_post(mailbox_t mailbox, void *buf, uint32_t len, uint32_t timeout);
+uint32_t  mailbox_wait(mailbox_t mailbox, void *buf, uint32_t len, uint32_t timeout);
 
 #endif

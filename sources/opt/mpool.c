@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -31,38 +31,38 @@
 struct mpool
 {
 	mutex_t   mutex;
-	uint32_t *addr_list;
-	uint32_t  item_count;
+	uint8_t **block_list;
+	uint32_t  block_count;
 	uint32_t  free_count;
-	uint32_t  next_out;
-	uint32_t  next_in;
+	uint32_t  free_head;
+	uint32_t  free_tail;
 };
 
-mpool_t mpool_create(uint32_t item_size, uint32_t item_count)
+mpool_t mpool_create(uint32_t block_size, uint32_t block_count)
 {
-	uint32_t i;
-	uint32_t item;
-	uint32_t msize;
-	mpool_t  mpool;
-	msize = sizeof(struct mpool) + (sizeof(uint32_t *) + item_size) * item_count;
-	mpool = heap_alloc(msize);
+	uint32_t   i;
+	uint32_t   msize;
+	mpool_t    mpool;
+	uint8_t   *block;
+	msize = sizeof(struct mpool) + block_count * (sizeof(uint32_t *) + block_size);
+	mpool = heap_alloc(NULL, msize);
 	if(mpool != NULL)
 	{
 		memset(mpool, 0, msize);
 		mpool->mutex = mutex_create();
 		if(mpool->mutex != NULL)
 		{
-			mpool->addr_list = (uint32_t *)(mpool + 1);
-			mpool->item_count = item_count;
-			item = (uint32_t)(mpool->addr_list + item_count);
-			for(i = 0; i < item_count; i++)
+			mpool->block_list = (uint8_t**)(mpool + 1);
+			mpool->block_count = block_count;
+			block = mpool->block_list[block_count];
+			for(i = 0; i < block_count; i++)
 			{
-				mpool_free(mpool, (void *)item);
-				item += item_size;
+				mpool_free(mpool, block);
+				block += block_size;
 			}
 			return mpool;
 		}
-		heap_free(mpool);
+		heap_free(NULL, mpool);
 	}
 	return NULL;
 }
@@ -70,36 +70,36 @@ mpool_t mpool_create(uint32_t item_size, uint32_t item_count)
 void mpool_delete(mpool_t mpool)
 {
 	mutex_delete(mpool->mutex);
-	heap_free(mpool);
+	heap_free(NULL, mpool);
 }
 
 void *mpool_alloc(mpool_t mpool)
 {
-	uint32_t item = 0;
+	void *block = NULL;
 	mutex_lock(mpool->mutex);
 	if(mpool->free_count > 0)
 	{
-		item = mpool->addr_list[mpool->next_out];
+		block = mpool->block_list[mpool->free_head];
 		mpool->free_count--;
-		mpool->next_out++;
-		if(mpool->next_out >= mpool->item_count)
+		mpool->free_head++;
+		if(mpool->free_head >= mpool->block_count)
 		{
-			mpool->next_out = 0;
+			mpool->free_head = 0;
 		}
 	}
 	mutex_unlock(mpool->mutex);
-	return (void *)item;
+	return block;
 }
 
-void mpool_free(mpool_t mpool, void *mem)
+void mpool_free(mpool_t mpool, void *block)
 {
 	mutex_lock(mpool->mutex);
-	mpool->addr_list[mpool->next_in] = (uint32_t)mem;
+	mpool->block_list[mpool->free_tail] = block;
 	mpool->free_count++;
-	mpool->next_in++;
-	if(mpool->next_in >= mpool->item_count)
+	mpool->free_tail++;
+	if(mpool->free_tail >= mpool->block_count)
 	{
-		mpool->next_in = 0;
+		mpool->free_tail = 0;
 	}
 	mutex_unlock(mpool->mutex);
 }

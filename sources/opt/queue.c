@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -50,7 +50,7 @@ struct queue
 queue_t queue_create(uint32_t item_size, uint32_t queue_depth)
 {
 	queue_t queue;
-	queue = heap_alloc(sizeof(struct queue));
+	queue = heap_alloc(NULL, sizeof(struct queue));
 	if(queue != NULL)
 	{
 		memset(queue, 0, sizeof(struct queue));
@@ -68,7 +68,7 @@ queue_t queue_create(uint32_t item_size, uint32_t queue_depth)
 			{
 				sem_delete(queue->sem);
 			}
-			heap_free(queue);
+			heap_free(NULL, queue);
 			return NULL;
 		}
 	}
@@ -80,7 +80,7 @@ void queue_delete(queue_t queue)
 	mpool_delete(queue->mpool);
 	mutex_delete(queue->mutex);
 	sem_delete(queue->sem);
-	heap_free(queue);
+	heap_free(NULL, queue);
 }
 
 bool queue_send(queue_t queue, void *item, uint32_t timeout)

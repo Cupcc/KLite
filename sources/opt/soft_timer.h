@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -24,20 +24,14 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ******************************************************************************/
-#ifndef __EGROUP_H
-#define __EGROUP_H
+#ifndef __SOFT_TIMER_H
+#define __SOFT_TIMER_H
 
-#define EGROUP_OPS_WAIT_ANY    0x00
-#define EGROUP_OPS_WAIT_ALL    0x01
-#define EGROUP_OPS_AUTO_CLEAR  0x02
+typedef struct soft_timer *soft_timer_t;
 
-typedef struct egroup *egroup_t;
-
-egroup_t egroup_create(void);
-void     egroup_delete(egroup_t event);
-void     egroup_set(egroup_t event, uint32_t bits);
-void     egroup_clear(egroup_t event, uint32_t bits);
-uint32_t egroup_wait(egroup_t event, uint32_t bits, uint32_t ops);
-uint32_t egroup_timed_wait(egroup_t event, uint32_t bits, uint32_t ops, uint32_t timeout);
+soft_timer_t soft_timer_create(void (*handler)(void *), void *arg);
+void         soft_timer_delete(soft_timer_t timer);
+void         soft_timer_start(soft_timer_t timer, uint32_t timeout);
+void         soft_timer_stop(soft_timer_t timer);
 
 #endif

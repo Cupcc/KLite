@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -26,102 +26,109 @@
 ******************************************************************************/
 #include <string.h>
 #include "kernel.h"
-#include "egroup.h"
+#include "event_flags.h"
 
-struct egroup
+struct event_flags
 {
 	mutex_t  mutex;
 	cond_t   cond;
 	uint32_t bits;
 };
 
-egroup_t egroup_create(void)
+event_flags_t event_flags_create(void)
 {
-	struct egroup *event;
-	event = heap_alloc(sizeof(struct egroup));
-	if(event != NULL)
+	struct event_flags *flags;
+	flags = heap_alloc(NULL, sizeof(struct event_flags));
+	if(flags != NULL)
 	{
-		memset(event, 0, sizeof(struct egroup));
-		event->mutex = mutex_create();
-		event->cond = cond_create();
-		if(event->cond == NULL)
+		memset(flags, 0, sizeof(struct event_flags));
+		flags->mutex = mutex_create();
+		if(flags->mutex == NULL)
 		{
+			heap_free(NULL, flags);
+			return NULL;
+		}
+		flags->cond = cond_create();
+		if(flags->cond == NULL)
+		{
+			mutex_delete(flags->mutex);
+			heap_free(NULL, flags);
 			return NULL;
 		}
 	}
-	return event;
+	return flags;
 }
 
-void egroup_delete(egroup_t event)
+void event_flags_delete(event_flags_t flags)
 {
-	heap_free(event);
+	mutex_delete(flags->mutex);
+	cond_delete(flags->cond);
+	heap_free(NULL, flags);
 }
 
-void egroup_set(egroup_t event, uint32_t bits)
+void event_flags_set(event_flags_t flags, uint32_t bits)
 {
-	mutex_lock(event->mutex);
-	event->bits |= bits;
-	mutex_unlock(event->mutex);
-	cond_broadcast(event->cond);
+	mutex_lock(flags->mutex);
+	flags->bits |= bits;
+	mutex_unlock(flags->mutex);
+	cond_broadcast(flags->cond);
 }
 
-void egroup_clear(egroup_t event, uint32_t bits)
+void event_flags_reset(event_flags_t flags, uint32_t bits)
 {
-	mutex_lock(event->mutex);
-	event->bits &= ~bits;
-	mutex_unlock(event->mutex);
+	mutex_lock(flags->mutex);
+	flags->bits &= ~bits;
+	mutex_unlock(flags->mutex);
 }
 
-static uint32_t try_wait_bits(egroup_t event, uint32_t bits, uint32_t ops)
+static uint32_t try_wait_bits(event_flags_t flags, uint32_t bits, uint32_t ops)
 {
 	uint32_t cmp;
 	uint32_t wait_all;
-	uint32_t auto_clear;
-	cmp = event->bits & bits;
-	wait_all = ops & EGROUP_OPS_WAIT_ALL;
-	auto_clear = ops & EGROUP_OPS_AUTO_CLEAR;
+	cmp = flags->bits & bits;
+	wait_all = ops & EVENT_FLAGS_WAIT_ALL;
 	if((wait_all && (cmp == bits)) || ((!wait_all) && (cmp != 0)))
 	{
-		if(auto_clear)
+		if(ops & EVENT_FLAGS_AUTO_RESET)
 		{
-			event->bits &= ~bits;
+			flags->bits &= ~bits;
 		}
 		return cmp;
 	}
 	return 0;
 }
 
-uint32_t egroup_wait(egroup_t event, uint32_t bits, uint32_t ops)
+uint32_t event_flags_wait(event_flags_t flags, uint32_t bits, uint32_t ops)
 {
 	uint32_t ret;
-	mutex_lock(event->mutex);
-	ret = try_wait_bits(event, bits, ops);
+	mutex_lock(flags->mutex);
+	ret = try_wait_bits(flags, bits, ops);
 	while(1)
 	{
-		ret = try_wait_bits(event, bits, ops);
+		ret = try_wait_bits(flags, bits, ops);
 		if(ret != 0)
 		{
 			break;
 		}
-		cond_wait(event->cond, event->mutex);
+		cond_wait(flags->cond, flags->mutex);
 	}
-	mutex_unlock(event->mutex);
+	mutex_unlock(flags->mutex);
 	return ret;
 }
 
-uint32_t egroup_timed_wait(egroup_t event, uint32_t bits, uint32_t ops, uint32_t timeout)
+uint32_t event_flags_timed_wait(event_flags_t flags, uint32_t bits, uint32_t ops, uint32_t timeout)
 {
 	uint32_t ret;
-	mutex_lock(event->mutex);
+	mutex_lock(flags->mutex);
 	while(1)
 	{
-		ret = try_wait_bits(event, bits, ops);
+		ret = try_wait_bits(flags, bits, ops);
 		if((ret != 0) || (timeout == 0))
 		{
 			break;
 		}
-		timeout = cond_timed_wait(event->cond, event->mutex, timeout);
+		timeout = cond_timed_wait(flags->cond, flags->mutex, timeout);
 	}
-	mutex_unlock(event->mutex);
+	mutex_unlock(flags->mutex);
 	return ret;
 }
