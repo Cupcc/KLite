@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+typedef struct heap  *heap_t;
 typedef struct tcb   *thread_t;
 typedef struct sem   *sem_t;
 typedef struct event *event_t;
@@ -51,9 +52,12 @@ uint32_t kernel_tick_count(void);
 /******************************************************************************
 * heap
 ******************************************************************************/
-void    *heap_alloc(uint32_t size);
-void     heap_free(void *mem);
-void     heap_usage(uint32_t *used, uint32_t *free);
+heap_t   heap_create(void *addr, uint32_t size);
+void    *heap_alloc(heap_t heap, uint32_t size);
+void     heap_free(heap_t heap, void *mem);
+void     heap_usage(heap_t heap, uint32_t *used, uint32_t *free);
+#define  malloc(x) heap_alloc(NULL, x)
+#define  free(x)   heap_free(NULL, x)
 
 /******************************************************************************
 * thread
@@ -76,6 +80,7 @@ thread_t thread_self(void);
 uint32_t thread_time(thread_t thread);
 void     thread_set_priority(thread_t thread, uint32_t prio);
 uint32_t thread_get_priority(thread_t thread);
+#define  sleep(x) thread_sleep(x)
 
 /******************************************************************************
 * semaphore
@@ -116,13 +121,5 @@ void     cond_signal(cond_t cond);
 void     cond_broadcast(cond_t cond);
 void     cond_wait(cond_t cond, mutex_t mutex);
 uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout);
-
-/******************************************************************************
-* alias
-******************************************************************************/
-#define  malloc(s)  heap_alloc(s)
-#define  free(p)    heap_free(p)
-#define  sleep(x)   thread_sleep(x)
-#define  clock()    kernel_tick_count()
 
 #endif

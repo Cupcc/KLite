@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -28,19 +28,18 @@
 #include "kernel.h"
 
 #define MAKE_VERSION_CODE(a,b,c)    ((a<<24)|(b<<16)|(c))
-#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(5,0,2)
+#define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(5,1,0)
 
 static uint32_t m_tick_count;
 static thread_t m_idle_thread;
 
 void kernel_init(void *heap_addr, uint32_t heap_size)
 {
-	void heap_init(void *addr, uint32_t size);
 	m_tick_count = 0;
 	m_idle_thread = NULL;
 	cpu_sys_init();
 	sched_init();
-	heap_init(heap_addr, heap_size);
+	heap_create(heap_addr, heap_size);
 }
 
 void kernel_start(void)

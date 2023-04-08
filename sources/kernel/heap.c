@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -36,10 +36,10 @@ struct heap_node
 {
 	struct heap_node *prev;
 	struct heap_node *next;
-	uint32_t used;
+	uint32_t          used;
 };
 
-struct heap_contex
+struct heap
 {
 	struct tcb_list   list;
 	uint32_t          lock;
@@ -48,7 +48,7 @@ struct heap_contex
 	struct heap_node *free;
 };
 
-static struct heap_contex m_heap;
+static struct heap *m_default_heap;
 
 static struct heap_node *find_free_node(struct heap_node *node)
 {
@@ -64,11 +64,10 @@ static struct heap_node *find_free_node(struct heap_node *node)
 	return node;
 }
 
-static void heap_node_init(struct heap_contex *heap, uint32_t start, uint32_t end)
+static void heap_node_init(struct heap *heap, uint32_t start, uint32_t end)
 {
 	struct heap_node *node;
 	node = (struct heap_node *)start;
-	heap->size = end - start;
 	heap->head = node;
 	heap->free = node;
 	node->used = sizeof(struct heap_node);
@@ -80,7 +79,7 @@ static void heap_node_init(struct heap_contex *heap, uint32_t start, uint32_t en
 	node->next = NULL;
 }
 
-static void heap_mutex_lock(struct heap_contex *heap)
+static void heap_mutex_lock(struct heap *heap)
 {
 	cpu_enter_critical();
 	if(heap->lock == 0)
@@ -95,7 +94,7 @@ static void heap_mutex_lock(struct heap_contex *heap)
 	cpu_leave_critical();
 }
 
-static void heap_mutex_unlock(struct heap_contex *heap)
+static void heap_mutex_unlock(struct heap *heap)
 {
 	cpu_enter_critical();
 	if(sched_tcb_wake_from((struct tcb_list *)heap))
@@ -109,30 +108,38 @@ static void heap_mutex_unlock(struct heap_contex *heap)
 	cpu_leave_critical();
 }
 
-__weak void heap_fault(void)
+__weak void heap_fault(heap_t heap)
 {
 
 }
 
-void heap_init(void *addr, uint32_t size)
+heap_t heap_create(void *addr, uint32_t size)
 {
 	uint32_t start;
 	uint32_t end;
-	start = MEM_ALIGN_PAD((uint32_t)addr);
-	end = MEM_ALIGN_CUT((uint32_t)addr + size);
-	memset(&m_heap, 0, sizeof(struct heap_contex));
-	heap_node_init(&m_heap, start, end);
+	heap_t   heap = (heap_t)addr;
+	start = MEM_ALIGN_PAD((uint32_t)(heap + 1));
+	end   = MEM_ALIGN_CUT((uint32_t)addr + size);
+	memset(heap, 0, sizeof(struct heap));
+	heap->size = size;
+	heap_node_init(heap, start, end);
+	if(m_default_heap == NULL)
+	{
+		m_default_heap = heap;
+	}
+	return heap;
 }
 
-void *heap_alloc(uint32_t size)
+void *heap_alloc(heap_t heap, uint32_t size)
 {
 	uint32_t free;
 	uint32_t need;
 	struct heap_node *temp;
 	struct heap_node *node;
+	heap = (heap == NULL) ? m_default_heap : heap;
 	need = MEM_ALIGN_PAD(size + sizeof(struct heap_node));
-	heap_mutex_lock(&m_heap);
-	for(node = m_heap.free; node->next != NULL; node = node->next)
+	heap_mutex_lock(heap);
+	for(node = heap->free; node->next != NULL; node = node->next)
 	{
 		free = ((uint32_t)node->next) - ((uint32_t)node) - node->used;
 		if(free >= need)
@@ -143,50 +150,54 @@ void *heap_alloc(uint32_t size)
 			temp->used = need;
 			node->next->prev = temp;
 			node->next = temp;
-			if(node == m_heap.free)
+			if(node == heap->free)
 			{
-				m_heap.free = find_free_node(node);
+				heap->free = find_free_node(node);
 			}
-			heap_mutex_unlock(&m_heap);
+			heap_mutex_unlock(heap);
 			return (void *)(temp + 1);
 		}
 	}
-	heap_mutex_unlock(&m_heap);
-	heap_fault();
+	heap_mutex_unlock(heap);
+	heap_fault(heap);
 	return NULL;
 }
 
-void heap_free(void *mem)
+void heap_free(heap_t heap, void *mem)
 {
 	struct heap_node *node;
 	node = (struct heap_node *)mem - 1;
-	heap_mutex_lock(&m_heap);
-	node->prev->next = node->next;
-	node->next->prev = node->prev;
-	if(node->prev < m_heap.free)
+	heap = (heap == NULL) ? m_default_heap : heap;
+	heap_mutex_lock(heap);
+	if(node->prev->next == node)
 	{
-		m_heap.free = node->prev;
+		node->prev->next = node->next;
+		node->next->prev = node->prev;
+		if(node->prev < heap->free)
+		{
+			heap->free = node->prev;
+		}
 	}
-	heap_mutex_unlock(&m_heap);
+	heap_mutex_unlock(heap);
 }
 
-void heap_usage(uint32_t *used, uint32_t *free)
+void heap_usage(heap_t heap, uint32_t *used, uint32_t *free)
 {
-	uint32_t sum;
+	uint32_t sum = 0;
 	struct heap_node *node;
-	sum = 0;
-	heap_mutex_lock(&m_heap);
-	for(node = m_heap.head; node != NULL; node = node->next)
+	heap = (heap == NULL) ? m_default_heap : heap;
+	heap_mutex_lock(heap);
+	for(node = heap->head; node->next != NULL; node = node->next)
 	{
-		sum += node->used;
+		sum += ((uint32_t)node->next) - ((uint32_t)node) - node->used;
 	}
-	heap_mutex_unlock(&m_heap);
+	heap_mutex_unlock(heap);
 	if(used != NULL)
 	{
-		*used = sum;
+		*used = heap->size - sum;
 	}
 	if(free != NULL)
 	{
-		*free = m_heap.size - sum;
+		*free = sum;
 	}
 }

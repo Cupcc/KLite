@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -35,7 +35,7 @@ struct cond
 cond_t cond_create(void)
 {
 	struct cond *cond;
-	cond = heap_alloc(sizeof(struct cond));
+	cond = heap_alloc(NULL, sizeof(struct cond));
 	if(cond != NULL)
 	{
 		memset(cond, 0, sizeof(struct cond));
@@ -45,7 +45,7 @@ cond_t cond_create(void)
 
 void cond_delete(cond_t cond)
 {
-	heap_free(cond);
+	heap_free(NULL, cond);
 }
 
 void cond_signal(cond_t cond)

@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -36,7 +36,7 @@ struct sem
 sem_t sem_create(uint32_t value)
 {
 	struct sem *sem;
-	sem = heap_alloc(sizeof(struct sem));
+	sem = heap_alloc(NULL, sizeof(struct sem));
 	if(sem != NULL)
 	{
 		memset(sem, 0, sizeof(struct sem));
@@ -47,7 +47,7 @@ sem_t sem_create(uint32_t value)
 
 void sem_delete(sem_t sem)
 {
-	heap_free(sem);
+	heap_free(NULL, sem);
 }
 
 void sem_post(sem_t sem)

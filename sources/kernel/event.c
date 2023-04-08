@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -37,7 +37,7 @@ struct event
 event_t event_create(bool auto_reset)
 {
 	struct event *event;
-	event = heap_alloc(sizeof(struct event));
+	event = heap_alloc(NULL, sizeof(struct event));
 	if(event != NULL)
 	{
 		memset(event, 0, sizeof(struct event));
@@ -48,7 +48,7 @@ event_t event_create(bool auto_reset)
 
 void event_delete(event_t event)
 {
-	heap_free(event);
+	heap_free(NULL, event);
 }
 
 void event_set(event_t event)

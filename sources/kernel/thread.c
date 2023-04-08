@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -40,7 +40,7 @@ thread_t thread_create(void (*entry)(void*), void *arg, uint32_t stack_size)
 	struct tcb *tcb;
 	uint8_t *stack_base;
 	stack_size = stack_size ? stack_size : 1024;
-	tcb = heap_alloc(sizeof(struct tcb) + stack_size);
+	tcb = heap_alloc(NULL, sizeof(struct tcb) + stack_size);
 	if(tcb != NULL)
 	{
 		stack_base = (uint8_t *)(tcb + 1);
@@ -63,7 +63,7 @@ void thread_delete(thread_t thread)
 	cpu_enter_critical();
 	sched_tcb_remove(thread);
 	cpu_leave_critical();
-	heap_free(thread);
+	heap_free(NULL, thread);
 }
 
 void thread_yield(void)
@@ -119,6 +119,6 @@ void thread_clean_up(void)
 		node = m_list_dead.head;
 		list_remove(&m_list_dead, node);
 		cpu_leave_critical();
-		heap_free(node->tcb);
+		heap_free(NULL, node->tcb);
 	}
 }

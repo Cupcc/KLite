@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+* Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
 *
 * This file is part of KLite distribution.
 *
@@ -37,7 +37,7 @@ struct mutex
 mutex_t mutex_create(void)
 {
 	struct mutex *mutex;
-	mutex = heap_alloc(sizeof(struct mutex));
+	mutex = heap_alloc(NULL, sizeof(struct mutex));
 	if(mutex != NULL)
 	{
 		memset(mutex, 0, sizeof(struct mutex));
@@ -47,7 +47,7 @@ mutex_t mutex_create(void)
 
 void mutex_delete(mutex_t mutex)
 {
-	heap_free(mutex);
+	heap_free(NULL, mutex);
 }
 
 bool mutex_try_lock(mutex_t mutex)
