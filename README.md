@@ -1,15 +1,15 @@
 # KLite 参考手册
-	更新日期: 2022.03.20
+	更新日期: 2023.04.08
 
 ## 一、简介
 
-**KLite** 是由个人开发者编写的嵌入式操作系统内核，创建于2015年5月6日，并以MIT协议开放源代码。  
+**KLite** 是由个人开发者于2015年编写的嵌入式操作系统内核，并以MIT协议开放源代码。  
 KLite的定位是一款入门级的嵌入式实时操作系统内核，以简洁易用为设计目标，旨在降低嵌入式RTOS的入门难度。  
-代码干净工整，架构清晰，模块化设计简单明了，函数简单易用，不使用条件编译，移植简单，无需复杂的配置和裁减。  
+代码干净工整、架构清晰、函数接口简单易用、不使用条件编译、移植简单、无需配置和裁减。  
 可能是目前最**简洁易用**的RTOS。
 ________________________________________________________________________________
 **功能特性：**
-- 资源占用极小（ROM：2KB，RAM：0.5KB）
+- 资源占用极小（ROM:2KB，RAM:0.5KB）
 - 优先级抢占
 - 时间片抢占（相同优先级）
 - 支持创建相同优先级的线程
@@ -17,14 +17,14 @@ ________________________________________________________________________________
 - 动态内存管理
 - 多编译器支持（GCC,IAR,KEIL）
 
-**作者简介：** 蒋晓岗，男，现居成都，2013年毕业于成都信息工程大学计算机科学与技术专业，从事嵌入式软件开发工作近十年。
+**作者简介：** 蒋晓岗，男，现居成都，毕业于成都信息工程大学，从事嵌入式软件开发十年。
 
 ## 二、开始使用
 
 KLite目前支持ARM7、ARM9、Cortex-M0、Cortex-M3、Cortex-M4、Cortex-M7内核。  
 以上平台如：全志F1C100S、STM32FXXX、NRF528XX等，请参考相关例程。  
 对于Cortex-M架构的MCU，实际上只需要修改cmsis.c里面的#include，比如#include "stm32f10x.h"
-> 由于KLite完全不使用条件编译，因此可以直接预编译kernel源码为kernel.lib，并保留kernel.h，可以有效减少重复编译的时间。
+> 由于KLite不使用条件编译，因此可以预编译kernel源码为kernel.lib，并保留kernel.h，可以有效减少重复编译的时间。
 
 main.c的推荐写法如下:
 ```
@@ -123,24 +123,37 @@ ________________________________________________________________________________
 ### 3.2 内存管理
 
 ________________________________________________________________________________
-+ void *heap_alloc(uint32_t size);  
-	参数：`size` 要申请的内存大小  
++ heap_t heap_create(void *addr, uint32_t size);  
+	参数：
+	`addr` 待创建堆内存起始地址  
+	`size` 该堆内存的长度  
+	返回：堆内存对象，申请失败返回`NULL`  
+	描述：用户在指定内存创建一个用于动态管理的堆内存  
+	> 为系统中不同的模块创建一个独立的堆可以提高稳定性和运行效率。  
+
+________________________________________________________________________________
++ void *heap_alloc(heap_t heap, uint32_t size);  
+	参数：
+	`heap` 堆内存对象  
+	`size` 要申请的内存大小  
 	返回：申请成功返回内存指针，申请失败返回`NULL`  
 	描述：从堆中申请一段连续的内存，功能和标准库的`malloc()`一样  
 	> 严格来说调用此函数应该检查返回值是否为`NULL`，
 	但每次`heap_alloc`都要写检查返回值的代码可能有点繁琐或者容易有遗漏的地方，
 	所以此函数在返回`NULL`之前会调用一个HOOK函数，原型`void heap_fault(void);`
 	对于嵌入式系统来说申请内存失败是严重错误，所以我们可以偷懒只在`heap_fault()`函数中统一处理错误。
-
 ________________________________________________________________________________
-+ void heap_free(void *mem);  
-	参数：`mem` 要释放的内存指针  
++ void heap_free(heap_t heap, void *mem);  
+	参数：
+	`heap` 堆内存对象  
+	`mem` 要释放的内存指针  
 	返回：无  
 	描述：释放由`heap_malloc()`申请的内存，功能和标准库的`free()`一样  
 
 ________________________________________________________________________________
-+ void heap_usage(uint32_t *used, uint32_t *free);  
++ void heap_usage(heap_t heap, uint32_t *used, uint32_t *free);  
 	参数：  
+	`heap` 堆内存对象  
 	`used` 输出已使用内存数量(字节)，此参数可以为`NULL`  
 	`free` 输出空闲内存数量(字节)，此参数可以为`NULL`  
 	返回：无  
@@ -406,42 +419,42 @@ c文件是功能的具体实现，h文件是模块声明的接口。
 
 ### 4.1 事件组
 ```
-#include "egroup.h"
+#include "event_flags.h"
 ```
 ________________________________________________________________________________
-+ egroup_t egroup_create(void);  
++ event_flags_t event_flags_create(void);  
 	参数：无  
 	返回：创建成功返回事件标识符，失败返回`NULL`  
 	描述：创建一个事件组对象  
 ________________________________________________________________________________
-+ void egroup_delete(egroup_t event);  
++ void event_flags_delete(event_flags_t event);  
 	参数：`event` 事件组标识符  
 	返回：无  
 	描述：删除事件组对象，并释放内存，在没有线程使用它时才能删除，否则可能产生未知异常  
 ________________________________________________________________________________
-+ void egroup_set(egroup_t event, uint32_t bits);  
++ void event_flags_set(event_flags_t event, uint32_t bits);  
 	参数：`event` 事件组标识符  
 	返回：无  
 	描述：置位`bits`指定的事件标志位，并唤醒等待队列中想要获取`bits`的线程  
 ________________________________________________________________________________
-+ void egroup_clear(egroup_t event, uint32_t bits);  
++ void event_flags_reset(event_flags_t event, uint32_t bits);  
 	参数：`event` 事件组标识符  
 	返回：无  
 	描述：清除`bits`指定的事件标志位，此函数不会唤醒任何线程  
 ________________________________________________________________________________
-+ uint32_t egroup_wait(egroup_t event, uint32_t bits, uint32_t ops);  
++ uint32_t event_flags_wait(event_flags_t event, uint32_t bits, uint32_t ops);  
 	参数：  
 	`event` 事件组标识符  
 	`bits` 想要等待的标志位  
 	`ops` 等待标志位的行为  
-	> EGROUP_OPS_WAIT_ANY: 只要`bits`中的任意一位有效，函数立即返回；  
-	> EGROUP_OPS_WAIT_ALL: 只有`bits`中的所有位都有效，函数才能返回；  
-	> EGROUP_OPS_AUTO_CLEAR: 函数返回时自动清零获取到的标志位；  
+	> EVENT_FLAGS_WAIT_ANY: 只要`bits`中的任意一位有效，函数立即返回；  
+	> EVENT_FLAGS_WAIT_ALL: 只有`bits`中的所有位都有效，函数才能返回；  
+	> EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；  
 	
 	返回：实际获取到的标志位状态  
 	描述：等待1个或多个事件标志位  
 ________________________________________________________________________________
-+ uint32_t egroup_timed_wait(egroup_t event, uint32_t bits, uint32_t ops, uint32_t timeout);  
++ uint32_t event_flags_timed_wait(event_flags_t event, uint32_t bits, uint32_t ops, uint32_t timeout);  
 	参数：  
 	`event` 事件组标识符  
 	`bits` 想要等待的标志位  
@@ -452,35 +465,35 @@ ________________________________________________________________________________
 	
 ### 4.2 软定时器
 ```
-#include "stimer.h"
+#include "soft_timer.h"
 ```
 ________________________________________________________________________________
-+ stimer_t stimer_create(void (*handler)(void *), void *arg);  
++ soft_timer_t soft_timer_create(void (*handler)(void *), void *arg);  
 	参数：  
 	`handler` 定时器回调函数  
 	`arg` 回调函数的参数  
 	返回：创建成功返回软件定时器标识符，失败返回`NULL`  
 	描述：创建一个软件定时器。  
 ________________________________________________________________________________
-+ void stimer_delete(stimer_t timer);  
++ void soft_timer_delete(soft_timer_t timer);  
 	参数：  
 	`times` 定时器标识符  
 	返回：无  
 	描述：删除软件定时器。  
 ________________________________________________________________________________
-+ void stimer_start(stimer_t timer, uint32_t timeout);  
++ void soft_timer_start(soft_timer_t timer, uint32_t timeout);  
 	参数：  
 	`times` 定时器标识符  
 	返回：无  
 	描述：启动软件定时器。  
 ________________________________________________________________________________
-+ void stimer_stop(stimer_t timer);  
++ void soft_timer_stop(soft_timer_t timer);  
 	参数：  
 	`times` 定时器标识符  
 	返回：无  
 	描述：停止软件定时器。  
 ________________________________________________________________________________
-+ void stimer_service(void);  
++ void soft_timer_service(void);  
 	参数：无    
 	返回：此函数在正常情况下不会返回。  
 	描述：处理软件定时器事件。  
@@ -492,10 +505,10 @@ ________________________________________________________________________________
 #include "mpool.h"
 ```
 ________________________________________________________________________________
-+ mpool_t mpool_create(uint32_t mem_size, uint32_t mem_count);  
++ mpool_t mpool_create(uint32_t block_size, uint32_t block_count);  
 	参数：  
-	`mem_size` 内存块大小  
-	`mem_count` 内存块总数  
+	`block_size` 内存块大小  
+	`block_count` 内存块总数  
 	返回：创建成功返回标识符，失败返回`NULL`  
 	描述：创建块内存池。  
 ________________________________________________________________________________
@@ -511,10 +524,10 @@ ________________________________________________________________________________
 	返回：申请成功返回内存指针，申请失败返回`NULL`  
 	描述：从内存池中申请一块内存。  
 ________________________________________________________________________________
-+ void mpool_free(mpool_t mpool, void *mem);  
++ void mpool_free(mpool_t mpool, void *block);  
 	参数：  
 	`mpool` 标识符  
-	`mem` 内存指针  
+	`block` 内存块指针  
 	返回：无  
 	描述：释放内存  
 
@@ -558,86 +571,44 @@ bool queue_recv(queue_t queue, void *item, uint32_t timeout);
 	返回：成功返回`true`，超时返回`false`  
 	描述：从队列中取出一条数据。  
 
-### 4.5 字节流缓冲区
+### 4.5 消息邮箱
+消息邮箱按照FIFO机制取出消息。取出的消息长度和发送的消息长度一致。  
+如果输入的buf长度小于消息长度，则丢弃超出buf长度的部分内容。  
+
 ```
-#include "bstream.h"
+#include "mailbox.h"
 ```
 ________________________________________________________________________________
-bstream_t bstream_create(uint32_t size);  
+mailbox_t mailbox_create(uint32_t size);  
 	参数：  
 	`size` 缓冲区长度  
 	返回：创建成功返回标识符，失败返回`NULL`  
 	描述：创建缓冲区。  
 ________________________________________________________________________________
-void bstream_delete(bstream_t stream);  
+void mailbox_delete(mailbox_t mbox);  
 	参数：  
-	`stream` 标识符  
+	`mbox` 标识符  
 	返回：无  
 	描述：删除缓冲区。  
 ________________________________________________________________________________
-void bstream_clear(bstream_t stream);  
+void mailbox_clear(mailbox_t mbox);  
 	参数：  
-	`stream` 标识符  
+	`mbox` 标识符  
 	返回：无  
 	描述：清空缓冲区。  
 ________________________________________________________________________________
-uint32_t bstream_write(bstream_t stream, void *buf, uint32_t len, uint32_t timeout);  
+uint32_t mailbox_post(mailbox_t mbox, void *buf, uint32_t len, uint32_t timeout);  
 	参数：  
-	`stream` 标识符  
+	`mbox` 标识符  
 	`buf` 数据指针  
 	`len` 数据长度  
 	`timeout` 超时时间（毫秒）  
 	返回：实际写入数据长度  
 	描述：向缓冲区写入指定长度的数据。  
 ________________________________________________________________________________
-uint32_t bstream_read(bstream_t stream, void *buf, uint32_t len, uint32_t timeout);  
+uint32_t mailbox_wait(mailbox_t mbox, void *buf, uint32_t len, uint32_t timeout);  
 	参数：  
-	`stream` 定时器标识符  
-	`buf` 数据指针  
-	`len` 数据长度  
-	`timeout` 超时时间（毫秒）  
-	返回：实际读出数据长度  
-	描述：从缓冲区中读出指定长度的数据。  
-
-### 4.6 消息流缓冲区
-消息流缓冲区与字节流缓冲区的区别：字节流对数据的写入和读取是可拆分的，消息流则不可拆分。  
-向字节流写64字节数据，每次只读1个字节，重复64次把数据读完；  
-向消息流写64字节，1次性读出来也是64字节，即使你给的读buf只有1个字节，也会把64字节全部读出，并丢弃剩下的63字节。  
-
-```
-#include "mstream.h"
-```
-________________________________________________________________________________
-mstream_t mstream_create(uint32_t size);  
-	参数：  
-	`size` 缓冲区长度  
-	返回：创建成功返回标识符，失败返回`NULL`  
-	描述：创建缓冲区。  
-________________________________________________________________________________
-void mstream_delete(mstream_t stream);  
-	参数：  
-	`stream` 标识符  
-	返回：无  
-	描述：删除缓冲区。  
-________________________________________________________________________________
-void mstream_clear(mstream_t stream);  
-	参数：  
-	`stream` 标识符  
-	返回：无  
-	描述：清空缓冲区。  
-________________________________________________________________________________
-uint32_t mstream_write(mstream_t stream, void *buf, uint32_t len, uint32_t timeout);  
-	参数：  
-	`stream` 标识符  
-	`buf` 数据指针  
-	`len` 数据长度  
-	`timeout` 超时时间（毫秒）  
-	返回：实际写入数据长度  
-	描述：向缓冲区写入指定长度的数据。  
-________________________________________________________________________________
-uint32_t mstream_read(mstream_t stream, void *buf, uint32_t len, uint32_t timeout);  
-	参数：  
-	`stream` 定时器标识符  
+	`mbox` 定时器标识符  
 	`buf` 数据指针  
 	`len` 数据长度  
 	`timeout` 超时时间（毫秒）  
