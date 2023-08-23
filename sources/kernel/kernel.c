@@ -30,7 +30,7 @@
 #define MAKE_VERSION_CODE(a,b,c)    ((a<<24)|(b<<16)|(c))
 #define KERNEL_VERSION_CODE         MAKE_VERSION_CODE(5,1,0)
 
-static uint32_t m_tick_count;
+static uint64_t m_tick_count;
 static thread_t m_idle_thread;
 
 void kernel_init(void *heap_addr, uint32_t heap_size)
@@ -76,7 +76,7 @@ void kernel_tick(uint32_t time)
 	cpu_leave_critical();
 }
 
-uint32_t kernel_tick_count(void)
+uint64_t kernel_tick_count(void)
 {
 	return m_tick_count;
 }
