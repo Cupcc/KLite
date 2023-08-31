@@ -57,8 +57,6 @@ heap_t   heap_create(void *addr, uint32_t size);
 void    *heap_alloc(heap_t heap, uint32_t size);
 void     heap_free(heap_t heap, void *mem);
 void     heap_usage(heap_t heap, uint32_t *used, uint32_t *free);
-#define  malloc(x) heap_alloc(NULL, x)
-#define  free(x)   heap_free(NULL, x)
 
 /******************************************************************************
 * thread
