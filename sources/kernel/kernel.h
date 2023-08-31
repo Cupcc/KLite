@@ -47,7 +47,8 @@ uint32_t kernel_version(void);
 void     kernel_idle(void);
 uint32_t kernel_idle_time(void);
 void     kernel_tick(uint32_t time);
-uint64_t kernel_tick_count(void);
+uint32_t kernel_tick_count(void);
+uint64_t kernel_tick_count64(void);
 
 /******************************************************************************
 * heap

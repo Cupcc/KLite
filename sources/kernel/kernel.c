@@ -76,7 +76,12 @@ void kernel_tick(uint32_t time)
 	cpu_leave_critical();
 }
 
-uint64_t kernel_tick_count(void)
+uint32_t kernel_tick_count(void)
+{
+	return (uint32_t)m_tick_count;
+}
+
+uint64_t kernel_tick_count64(void)
 {
 	return m_tick_count;
 }
